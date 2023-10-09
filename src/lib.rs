@@ -6,21 +6,21 @@ pub trait MarkdownTransformer {
         "".to_string()
     }
 
-    fn transform_link(&mut self, text: String, url: String) -> String {
+    fn transform_link(&mut self, _text: String, _url: String) -> String {
         "".to_string()
     }
     fn transform_image(
         &mut self,
-        alt: String,
-        url: String,
-        add_tags: HashMap<String, String>,
+        _alt: String,
+        _url: String,
+        _add_tags: HashMap<String, String>,
     ) -> String {
         "".to_string()
     }
-    fn transform_comment(&mut self, text: String) -> String {
+    fn transform_comment(&mut self, _text: String) -> String {
         "".to_string()
     }
 
     // By default, do nothing
-    fn peek_header(&mut self, level: usize, header: &String) {}
+    fn peek_header(&mut self, _level: usize, _header: &String) {}
 }
