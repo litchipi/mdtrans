@@ -80,10 +80,17 @@ fn test_transform_link() {
         fn transform_link(&mut self, text: String, url: String) -> String {
             format!("{text}: {url}")
         }
+        fn transform_bold(&mut self, text: String) -> String {
+            text
+        }
     }
     let mut t = DummyTransform;
 
     let res = transform_markdown_string("[a](b)".to_string(), &mut t);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), "a: b".to_string());
+
+    let res = transform_markdown_string("[a **bold** c](b)".to_string(), &mut t);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), "a bold c: b".to_string());
 }

@@ -68,38 +68,47 @@ where
         ));
     };
 
-    Ok(transform_pair(
-        parsed.as_rule(),
-        parsed.into_inner(),
-        transformer,
-    ))
+    Ok(transform_pair(parsed, transformer))
 }
 
-fn transform_pair<T>(rule: Rule, mut inner: Pairs<Rule>, transformer: &mut T) -> String
+fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
+    inner.next().map(|p| p.as_str().to_string())
+}
+
+fn transform_pair<T>(pair: Pair<Rule>, transformer: &mut T) -> String
 where
     T: MarkdownTransformer,
 {
+    let rule = pair.as_rule();
+    if let Rule::text = rule {
+        return pair.as_str().to_string();
+    }
+    let mut inner = pair.into_inner();
+    println!("Transform {rule:?}");
     match rule {
-        Rule::h1 => transformer.transform_header(1, inner.next().unwrap().to_string()),
-        Rule::h2 => transformer.transform_header(2, inner.next().unwrap().to_string()),
-        Rule::h3 => transformer.transform_header(3, inner.next().unwrap().to_string()),
-        Rule::h4 => transformer.transform_header(4, inner.next().unwrap().to_string()),
-        Rule::h5 => transformer.transform_header(5, inner.next().unwrap().to_string()),
-        Rule::h6 => transformer.transform_header(6, inner.next().unwrap().to_string()),
-        Rule::italic => transformer.transform_italic(inner.next().unwrap().to_string()),
-        Rule::bold => transformer.transform_bold(inner.next().unwrap().to_string()),
+        Rule::h1 => transformer.transform_header(1, next_inner_string(&mut inner).unwrap()),
+        Rule::h2 => transformer.transform_header(2, next_inner_string(&mut inner).unwrap()),
+        Rule::h3 => transformer.transform_header(3, next_inner_string(&mut inner).unwrap()),
+        Rule::h4 => transformer.transform_header(4, next_inner_string(&mut inner).unwrap()),
+        Rule::h5 => transformer.transform_header(5, next_inner_string(&mut inner).unwrap()),
+        Rule::h6 => transformer.transform_header(6, next_inner_string(&mut inner).unwrap()),
+        Rule::italic => transformer.transform_italic(next_inner_string(&mut inner).unwrap()),
+        Rule::bold => transformer.transform_bold(next_inner_string(&mut inner).unwrap()),
         Rule::link => {
-            let text = inner.next().unwrap().as_str().to_string();
+            let text = inner.next().unwrap();
+            let text = transform_pair(text, transformer);
             let url = inner.next().unwrap().as_str().to_string();
             transformer.transform_link(text, url)
         }
         Rule::file | Rule::rich_txt => {
             let mut buffer = "".to_string();
             for child in inner {
-                buffer += transform_pair(child.as_rule(), child.into_inner(), transformer).as_str();
+                buffer += transform_pair(child, transformer).as_str();
             }
+            println!("rich text {buffer}");
             buffer
         }
+        Rule::EOI => "".to_string(),
         r => {
             println!("{r:?} not implemented");
             "".to_string()
