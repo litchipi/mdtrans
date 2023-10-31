@@ -1,4 +1,13 @@
-pub mod transform;
-pub mod parse;
+mod transform;
+mod errors;
 
-pub use transform::MarkdownTransformer;
+#[cfg(test)]
+mod tests;
+
+use pest_derive::Parser;
+pub use transform::*;
+
+#[derive(Parser)]
+#[grammar = "markdown.pest"]
+pub struct MarkdownParser;
+

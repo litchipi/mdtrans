@@ -1,0 +1,33 @@
+// character sets
+char      = _{ ASCII_ALPHANUMERIC | SYMBOLS | " " }
+SYMBOLS   = _{ "." | "_" | "/" | "-" | "\\" | "#" }
+URL_CHARS = _{ ASCII_ALPHANUMERIC | "/" | "." | "_" | "-" | "%" }
+text      =  { char+ }
+
+// SYMBOLS
+// headers
+h1 = { "# " ~ rich_txt }
+h2 = { "## " ~ rich_txt }
+h3 = { "### " ~ rich_txt }
+h4 = { "#### " ~ rich_txt }
+h5 = { "##### " ~ rich_txt }
+h6 = { "###### " ~ rich_txt }
+
+symbol = _{ h1 | h2 | h3 | h4 | h5 | h6 }
+
+// INLINE SYMBOLS
+bold          =  { "**" ~ rich_txt? ~ "**" }
+code          =  { "`" ~ rich_txt? ~ "`" }
+url           =  { URL_CHARS* }
+link          =  { "[" ~ rich_txt ~ "](" ~ url ~ ")" }
+inline_symbol = _{ bold | code | link }
+
+// BLOCKS
+text_block = { (inline_symbol | text)* }
+rich_txt   = { (inline_symbol | char)* }
+
+// Parser groups
+text_line = _{ (symbol | text_block) }
+file      =  {
+    SOI ~ (text_line? ~ NEWLINE)* ~ text_line? ~ EOI
+}
