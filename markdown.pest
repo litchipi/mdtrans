@@ -30,12 +30,11 @@ reflink       =  { "[" ~ rich_txt ~ "][" ~ slug ~ "]" }
 inline_symbol = _{ italic | bold | code | link | reflink }
 
 // BLOCKS
-text_block = { (inline_symbol | text)* }
-rich_txt   = { (inline_symbol | char)* }
-horiz_sep  = { ("-"){3, } }
+rich_txt  = { (inline_symbol | text)* }
+horiz_sep = { ("-"){3, } }
 
 // Parser groups
-text_line = _{ (block_type | horiz_sep | text_block) }
+text_line = _{ (block_type | horiz_sep | rich_txt) }
 file      =  {
     SOI ~ (text_line? ~ NEWLINE)* ~ text_line? ~ EOI
 }

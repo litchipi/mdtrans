@@ -1,35 +1,32 @@
-use pest::{iterators::Pairs, Parser};
+use pest::{
+    iterators::{Pair, Pairs},
+    Parser,
+};
 use std::collections::HashMap;
 
 use crate::{errors::Errcode, MarkdownParser, Rule};
 
 pub trait MarkdownTransformer {
-    fn peek_text(&mut self, _text: &str) {}
     fn transform_text(&mut self, _text: String) -> String {
         "".to_string()
     }
 
-    fn peek_header(&mut self, _level: usize, _header: &str) {}
     fn transform_header(&mut self, _level: usize, _text: String) -> String {
         "".to_string()
     }
 
-    fn peek_bold(&mut self, _text: &str) {}
     fn transform_bold(&mut self, _text: String) -> String {
         "".to_string()
     }
 
-    fn peek_italic(&mut self, _text: &str) {}
     fn transform_italic(&mut self, _text: String) -> String {
         "".to_string()
     }
 
-    fn peek_link(&mut self, _text: &str, _url: &str) {}
     fn transform_link(&mut self, _text: String, _url: String) -> String {
         "".to_string()
     }
 
-    fn peek_image(&mut self, _alt: &str, _url: &str, _add_tags: &HashMap<String, String>) {}
     fn transform_image(
         &mut self,
         _alt: String,
@@ -39,7 +36,6 @@ pub trait MarkdownTransformer {
         "".to_string()
     }
 
-    fn peek_comment(&mut self, _text: String) {}
     fn transform_comment(&mut self, _text: String) -> String {
         "".to_string()
     }
@@ -72,29 +68,41 @@ where
         ));
     };
 
-    let mut buffer = "".to_string();
-    for node in parsed.into_inner() {
-        let rule = node.as_rule();
-        let inner = node.into_inner();
-        if let Some(ref t) = forward_transformer(rule, inner, transformer) {
-            buffer += t;
-        }
-    }
-
-    Ok(buffer)
+    Ok(transform_pair(
+        parsed.as_rule(),
+        parsed.into_inner(),
+        transformer,
+    ))
 }
 
-fn forward_transformer<T>(rule: Rule, mut inner: Pairs<Rule>, transformer: &mut T) -> Option<String>
+fn transform_pair<T>(rule: Rule, mut inner: Pairs<Rule>, transformer: &mut T) -> String
 where
     T: MarkdownTransformer,
 {
     match rule {
-        Rule::h1 => Some(transformer.transform_header(1, inner.next().unwrap().to_string())),
-        Rule::h2 => Some(transformer.transform_header(2, inner.next().unwrap().to_string())),
-        Rule::h3 => Some(transformer.transform_header(3, inner.next().unwrap().to_string())),
-        Rule::h4 => Some(transformer.transform_header(4, inner.next().unwrap().to_string())),
-        Rule::h5 => Some(transformer.transform_header(5, inner.next().unwrap().to_string())),
-        Rule::h6 => Some(transformer.transform_header(6, inner.next().unwrap().to_string())),
-        _ => None,
+        Rule::h1 => transformer.transform_header(1, inner.next().unwrap().to_string()),
+        Rule::h2 => transformer.transform_header(2, inner.next().unwrap().to_string()),
+        Rule::h3 => transformer.transform_header(3, inner.next().unwrap().to_string()),
+        Rule::h4 => transformer.transform_header(4, inner.next().unwrap().to_string()),
+        Rule::h5 => transformer.transform_header(5, inner.next().unwrap().to_string()),
+        Rule::h6 => transformer.transform_header(6, inner.next().unwrap().to_string()),
+        Rule::italic => transformer.transform_italic(inner.next().unwrap().to_string()),
+        Rule::bold => transformer.transform_bold(inner.next().unwrap().to_string()),
+        Rule::link => {
+            let text = inner.next().unwrap().as_str().to_string();
+            let url = inner.next().unwrap().as_str().to_string();
+            transformer.transform_link(text, url)
+        }
+        Rule::file | Rule::rich_txt => {
+            let mut buffer = "".to_string();
+            for child in inner {
+                buffer += transform_pair(child.as_rule(), child.into_inner(), transformer).as_str();
+            }
+            buffer
+        }
+        r => {
+            println!("{r:?} not implemented");
+            "".to_string()
+        }
     }
 }
