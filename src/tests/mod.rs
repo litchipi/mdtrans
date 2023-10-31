@@ -37,7 +37,6 @@ Je suis un bout de `code`
 Bref
 ";
 
-    
     let parsed = MarkdownParser::parse(Rule::file, input);
     println!("{parsed:?}");
     assert!(parsed.is_ok());

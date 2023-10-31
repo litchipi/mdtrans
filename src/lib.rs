@@ -1,5 +1,5 @@
-mod transform;
 mod errors;
+mod transform;
 
 #[cfg(test)]
 mod tests;
@@ -10,4 +10,3 @@ pub use transform::*;
 #[derive(Parser)]
 #[grammar = "markdown.pest"]
 pub struct MarkdownParser;
-
