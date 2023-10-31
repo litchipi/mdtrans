@@ -3,8 +3,9 @@ char      = _{ ASCII_ALPHANUMERIC | SYMBOLS | " " }
 SYMBOLS   = _{ "." | "_" | "/" | "-" | "\\" | "#" }
 URL_CHARS = _{ ASCII_ALPHANUMERIC | "/" | "." | "_" | "-" | "%" }
 text      =  { char+ }
+slug      =  { (ASCII_ALPHANUMERIC | "_" | "-" | ".")* }
 
-// SYMBOLS
+// BLOCK TYPES
 // headers
 h1 = { "# " ~ rich_txt }
 h2 = { "## " ~ rich_txt }
@@ -13,21 +14,28 @@ h4 = { "#### " ~ rich_txt }
 h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
-symbol = _{ h1 | h2 | h3 | h4 | h5 | h6 }
+quote = { "> " ~ rich_txt }
+// TODO	Get the raw text, including newline, from codeblock
+codeblock = { "```" ~ NEWLINE ~ (text | NEWLINE)* ~ "```" }
+
+block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock }
 
 // INLINE SYMBOLS
-bold          =  { "**" ~ rich_txt? ~ "**" }
+bold          =  { ("*"){2} ~ rich_txt? ~ "**" }
+italic        =  { ("*"){1} ~ !("*") ~ rich_txt? ~ "*" }
 code          =  { "`" ~ rich_txt? ~ "`" }
 url           =  { URL_CHARS* }
 link          =  { "[" ~ rich_txt ~ "](" ~ url ~ ")" }
-inline_symbol = _{ bold | code | link }
+reflink       =  { "[" ~ rich_txt ~ "][" ~ slug ~ "]" }
+inline_symbol = _{ italic | bold | code | link | reflink }
 
 // BLOCKS
 text_block = { (inline_symbol | text)* }
 rich_txt   = { (inline_symbol | char)* }
+horiz_sep  = { ("-"){3, } }
 
 // Parser groups
-text_line = _{ (symbol | text_block) }
+text_line = _{ (block_type | horiz_sep | text_block) }
 file      =  {
     SOI ~ (text_line? ~ NEWLINE)* ~ text_line? ~ EOI
 }
