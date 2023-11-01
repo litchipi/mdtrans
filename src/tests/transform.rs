@@ -94,3 +94,21 @@ fn test_transform_link() {
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), "a bold c: b".to_string());
 }
+
+#[test]
+fn test_transform_quote() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_quote(&mut self, text: String) -> String {
+            println!("QUOTE TEXT: {text}");
+            format!("QUOTE\n{text}\nQUOTE")
+        }
+    }
+    let mut t = DummyTransform;
+
+    let input = "> Je suis une truite\nJe suis un saumon\n\n";
+    let output = "QUOTE\nJe suis une truite\nJe suis un saumon\nQUOTE";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), output.to_string());
+}
