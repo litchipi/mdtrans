@@ -1,9 +1,12 @@
 // character sets
-char      = _{ ASCII_ALPHANUMERIC | SYMBOLS | " " }
-SYMBOLS   = _{ "." | "_" | "/" | "-" | "\\" | "#" }
-URL_CHARS = _{ ASCII_ALPHANUMERIC | "/" | "." | "_" | "-" | "%" }
-text      =  { char+ }
-slug      =  { (ASCII_ALPHANUMERIC | "_" | "-" | ".")* }
+char         = _{ ASCII_ALPHANUMERIC | CODE_SYMBOLS | SAFE_SYMBOLS | " " }
+text         =  { char+ }
+SAFE_SYMBOLS = _{ "." | "_" | "/" | "\\" | "!" | "?" }
+CODE_SYMBOLS = _{ "(" | ")" | "{" | "}" | ";" | ">" | "<" | "\"" }
+// That could be interpreted as markdown
+UNSAFE_SYMBOLS = _{ "`" | "-" | "#" }
+URL_CHARS      = _{ ASCII_ALPHANUMERIC | "/" | "." | "_" | "-" | "%" }
+slug           =  { (ASCII_ALPHANUMERIC | "_" | "-" | ".")* }
 
 // BLOCK TYPES
 // headers
@@ -14,16 +17,16 @@ h4 = { "#### " ~ rich_txt }
 h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
-quote = { "> " ~ rich_txt }
-// TODO	Get the raw text, including newline, from codeblock
-codeblock = { "```" ~ NEWLINE ~ (text | NEWLINE)* ~ "```" }
+quote     = { "> " ~ rich_txt }
+codeblock = { "```" ~ (" " | NEWLINE)? ~ (text | NEWLINE | "\\`")* ~ "```" }
+comment   = { "<!--" ~ (" " | NEWLINE)? ~ (text | NEWLINE)* ~ (" " | NEWLINE)? ~ "-->" }
 
-block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock }
+block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment }
 
 // INLINE SYMBOLS
 bold          =  { ("*"){2} ~ rich_txt? ~ "**" }
 italic        =  { ("*"){1} ~ !("*") ~ rich_txt? ~ "*" }
-code          =  { "`" ~ rich_txt? ~ "`" }
+code          =  { ("`"){1} ~ !("`") ~ (text | NEWLINE)+ ~ "`" }
 url           =  { URL_CHARS* }
 link          =  { "[" ~ rich_txt ~ "](" ~ url ~ ")" }
 reflink       =  { "[" ~ rich_txt ~ "][" ~ slug ~ "]" }
@@ -35,7 +38,8 @@ rich_txt  = { (inline_symbol | text)* }
 horiz_sep = { ("-"){3, } }
 
 // Parser groups
-text_line = _{ (block_type | horiz_sep | rich_txt) }
+text_line = _{ block_type | horiz_sep | rich_txt }
 file      =  {
-    SOI ~ (text_line? ~ NEWLINE)* ~ text_line? ~ EOI
+    SOI ~ (text_line ~ NEWLINE)* ~ text_line? ~ EOI
 }
+
