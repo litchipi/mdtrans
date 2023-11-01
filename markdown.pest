@@ -27,7 +27,8 @@ code          =  { "`" ~ rich_txt? ~ "`" }
 url           =  { URL_CHARS* }
 link          =  { "[" ~ rich_txt ~ "](" ~ url ~ ")" }
 reflink       =  { "[" ~ rich_txt ~ "][" ~ slug ~ "]" }
-inline_symbol = _{ italic | bold | code | link | reflink }
+refurl        =  { "[" ~ slug ~ "]:" ~ (" ")* ~ url }
+inline_symbol = _{ italic | bold | code | link | reflink | refurl }
 
 // BLOCKS
 rich_txt  = { (inline_symbol | text)* }
