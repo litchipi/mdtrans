@@ -76,6 +76,11 @@ pub trait MarkdownTransformer {
     fn transform_code(&mut self, _text: String) -> String {
         unimplemented!()
     }
+
+    fn peek_horizontal_separator(&mut self) {}
+    fn transform_horizontal_separator(&mut self) -> String {
+        unimplemented!()
+    }
 }
 
 pub fn transform_markdown<F, O, T>(
@@ -206,7 +211,7 @@ where
             Rule::code => self
                 .transformer
                 .peek_code(self.get_whole_block(&mut inner, "\n")),
-            Rule::horiz_sep => todo!(),
+            Rule::horiz_sep => self.transformer.peek_horizontal_separator(),
             r => {
                 println!("{r:?} not implemented");
             }
@@ -228,7 +233,7 @@ where
         self.transformer.transform_text(text)
     }
 
-    fn is_block_type(&self, rule: &Rule) -> bool {
+    fn needs_newline_sep(&self, rule: &Rule) -> bool {
         matches!(
             rule,
             Rule::h1
@@ -239,6 +244,7 @@ where
                 | Rule::h6
                 | Rule::codeblock
                 | Rule::comment
+                | Rule::horiz_sep
         )
     }
 
@@ -260,7 +266,7 @@ where
         }
         let mut inner = pair.into_inner();
         println!("Transform {rule:?}");
-        let add_newline = self.is_block_type(&rule);
+        let add_newline = self.needs_newline_sep(&rule);
         let text = match rule {
             Rule::h1 => self
                 .transformer
@@ -319,7 +325,7 @@ where
                 let code_text = next_inner_string(&mut inner).unwrap();
                 self.transformer.transform_code(code_text)
             }
-            Rule::horiz_sep => todo!(),
+            Rule::horiz_sep => self.transformer.transform_horizontal_separator(),
             Rule::file | Rule::rich_txt => {
                 let mut buffer = "".to_string();
                 if inner.len() == 0 {

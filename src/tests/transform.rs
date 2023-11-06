@@ -147,3 +147,20 @@ fn test_transform_inline_code() {
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), output.to_string());
 }
+
+#[test]
+fn test_transform_horiz_sep() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_horizontal_separator(&mut self) -> String {
+            "=== HORIZ SEPARATOR ===".to_string()
+        }
+    }
+    let mut t = DummyTransform;
+
+    let input = "start\n---\nend";
+    let output = "start\n=== HORIZ SEPARATOR ===\nend";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), output.to_string());
+}
