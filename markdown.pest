@@ -24,6 +24,9 @@ SYMBOLS        = _{
   | "]"
   | "!"
   | "`"
+  | "&"
+  | "|"
+  | "@"
   | INLINE_SYMBOLS
 }
 URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" }
