@@ -71,6 +71,11 @@ pub trait MarkdownTransformer {
     fn transform_codeblock(&mut self, _text: String) -> String {
         unimplemented!()
     }
+
+    fn peek_code(&mut self, _text: String) {}
+    fn transform_code(&mut self, _text: String) -> String {
+        unimplemented!()
+    }
 }
 
 pub fn transform_markdown<F, O, T>(
@@ -195,11 +200,12 @@ where
                 self.in_quote = true;
                 *self.buffers.get_mut(0).unwrap() += quote_text.as_str();
             }
-            Rule::codeblock => {
-                let code_text = next_inner_string(&mut inner).unwrap();
-                self.transformer.peek_codeblock(code_text)
-            }
-            Rule::code => todo!(),
+            Rule::codeblock => self
+                .transformer
+                .peek_codeblock(self.get_whole_block(&mut inner, "\n")),
+            Rule::code => self
+                .transformer
+                .peek_code(self.get_whole_block(&mut inner, "\n")),
             Rule::horiz_sep => todo!(),
             r => {
                 println!("{r:?} not implemented");
@@ -234,6 +240,16 @@ where
                 | Rule::codeblock
                 | Rule::comment
         )
+    }
+
+    fn get_whole_block(&self, inner: &mut Pairs<Rule>, join: &str) -> String {
+        let mut buffer = "".to_string();
+        for code_line in inner {
+            buffer += code_line.as_str();
+            buffer += join;
+        }
+        let end = buffer.len() - join.len();
+        buffer[..end].to_string()
     }
 
     fn transform_pair(&mut self, pair: Pair<Rule>) -> String {
@@ -296,11 +312,13 @@ where
                 *buffer += "\n";
                 "".to_string()
             }
-            Rule::codeblock => {
+            Rule::codeblock => self
+                .transformer
+                .transform_codeblock(self.get_whole_block(&mut inner, "\n")),
+            Rule::code => {
                 let code_text = next_inner_string(&mut inner).unwrap();
-                self.transformer.transform_codeblock(code_text)
+                self.transformer.transform_code(code_text)
             }
-            Rule::code => todo!(),
             Rule::horiz_sep => todo!(),
             Rule::file | Rule::rich_txt => {
                 let mut buffer = "".to_string();

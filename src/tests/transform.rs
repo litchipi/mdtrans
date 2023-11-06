@@ -124,8 +124,25 @@ fn test_transform_codeblock() {
     }
     let mut t = DummyTransform;
 
-    let input = "start\n```\nsome code\n```\nend";
-    let output = "start\nCODEBLOCK\nsome code\nCODEBLOCK\nend";
+    let input = "start\n```\nsome\ncode\n```\nend";
+    let output = "start\nCODEBLOCK\nsome\ncode\nCODEBLOCK\nend";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), output.to_string());
+}
+
+#[test]
+fn test_transform_inline_code() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_code(&mut self, text: String) -> String {
+            format!("CODE {text} CODE")
+        }
+    }
+    let mut t = DummyTransform;
+
+    let input = "start `some code` end";
+    let output = "start CODE some code CODE end";
     let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), output.to_string());
