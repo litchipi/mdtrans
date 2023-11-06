@@ -7,6 +7,8 @@ use std::{collections::HashMap, unimplemented};
 use crate::{errors::Errcode, MarkdownParser, Rule};
 
 pub trait MarkdownTransformer {
+    fn reset(&mut self) {}
+
     fn peek_text(&mut self, _text: String) {}
     fn transform_text(&mut self, text: String) -> String {
         text
@@ -72,8 +74,8 @@ pub trait MarkdownTransformer {
         unimplemented!()
     }
 
-    fn peek_code(&mut self, _text: String) {}
-    fn transform_code(&mut self, _text: String) -> String {
+    fn peek_inline_code(&mut self, _text: String) {}
+    fn transform_inline_code(&mut self, _text: String) -> String {
         unimplemented!()
     }
 
@@ -107,9 +109,10 @@ where
     };
 
     let mut state = ParseState::new(transformer);
-    state.peek_pair(parsed.clone());
-    let mut state = ParseState::new(transformer);
-    Ok(state.transform_pair(parsed))
+    state.peek = true;
+    state.act_on_pair(parsed.clone());
+    state.reset();
+    Ok(state.act_on_pair(parsed))
 }
 
 fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
@@ -117,6 +120,7 @@ fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
 }
 
 pub struct ParseState<'a, T> {
+    peek: bool,
     in_quote: bool,
     buffers: [String; 1],
     transformer: &'a mut T,
@@ -128,97 +132,33 @@ where
 {
     fn new(transformer: &mut T) -> ParseState<T> {
         ParseState {
+            peek: false,
             in_quote: false,
             buffers: [String::new(); 1],
             transformer,
         }
     }
 
-    fn peek_pair(&mut self, pair: Pair<Rule>) {
-        let rule = pair.as_rule();
-        if let Rule::text = rule {
-            let text = pair.as_str().to_string();
-            if self.in_quote {
-                let buffer = self.buffers.get_mut(0).unwrap();
-                if text.is_empty() {
-                    self.in_quote = false;
-                    let quote_text = buffer.clone();
-                    self.transformer.peek_quote(quote_text);
-                    *buffer = String::new();
-                } else {
-                    *buffer += text.as_str();
-                    *buffer += "\n";
-                }
-            }
-            self.transformer.peek_text(pair.as_str().to_string());
-            return;
-        }
-        let mut inner = pair.into_inner();
-        println!("Peek {rule:?}");
-        match rule {
-            Rule::h1 => self
-                .transformer
-                .peek_header(1, next_inner_string(&mut inner).unwrap()),
-            Rule::h2 => self
-                .transformer
-                .peek_header(2, next_inner_string(&mut inner).unwrap()),
-            Rule::h3 => self
-                .transformer
-                .peek_header(3, next_inner_string(&mut inner).unwrap()),
-            Rule::h4 => self
-                .transformer
-                .peek_header(4, next_inner_string(&mut inner).unwrap()),
-            Rule::h5 => self
-                .transformer
-                .peek_header(5, next_inner_string(&mut inner).unwrap()),
-            Rule::h6 => self
-                .transformer
-                .peek_header(6, next_inner_string(&mut inner).unwrap()),
-            Rule::italic => self
-                .transformer
-                .peek_italic(next_inner_string(&mut inner).unwrap()),
-            Rule::bold => self
-                .transformer
-                .peek_bold(next_inner_string(&mut inner).unwrap()),
-            Rule::link => {
-                let text = next_inner_string(&mut inner).unwrap();
-                let url = next_inner_string(&mut inner).unwrap();
-                self.transformer.peek_link(text, url)
-            }
-            Rule::reflink => {
-                let text = next_inner_string(&mut inner).unwrap();
-                let slug = next_inner_string(&mut inner).unwrap();
-                self.transformer.peek_reflink(text, slug)
-            }
-            Rule::refurl => {
-                let slug = next_inner_string(&mut inner).unwrap();
-                let url = next_inner_string(&mut inner).unwrap();
-                self.transformer.peek_refurl(slug, url)
-            }
-            Rule::file | Rule::rich_txt => {
-                for child in inner {
-                    self.peek_pair(child);
-                }
-            }
-            Rule::quote => {
-                let quote_text = next_inner_string(&mut inner).unwrap();
-                self.in_quote = true;
-                *self.buffers.get_mut(0).unwrap() += quote_text.as_str();
-            }
-            Rule::codeblock => self
-                .transformer
-                .peek_codeblock(self.get_whole_block(&mut inner, "\n")),
-            Rule::code => self
-                .transformer
-                .peek_code(self.get_whole_block(&mut inner, "\n")),
-            Rule::horiz_sep => self.transformer.peek_horizontal_separator(),
-            r => {
-                println!("{r:?} not implemented");
-            }
-        }
+    fn reset(&mut self) {
+        self.peek = false;
+        self.in_quote = false;
+        self.buffers = [String::new(); 1];
+        self.transformer.reset();
     }
 
-    fn transform_raw_text(&mut self, text: String) -> String {
+    fn get_rich_text(&mut self, nb: usize, inner: &mut Pairs<Rule>) -> String {
+        assert!(nb <= inner.len());
+        let mut buffer = "".to_string();
+        let mut n = 0;
+        while n < nb {
+            let pair = inner.next().unwrap();
+            buffer += self.act_on_pair(pair).as_str();
+            n += 1;
+        }
+        buffer
+    }
+
+    fn act_on_raw_text(&mut self, text: String) -> String {
         if self.in_quote {
             if text.is_empty() {
                 self.in_quote = false;
@@ -230,7 +170,12 @@ where
                 return "".to_string();
             }
         }
-        self.transformer.transform_text(text)
+        if self.peek {
+            self.transformer.peek_text(text);
+            "".to_string()
+        } else {
+            self.transformer.transform_text(text)
+        }
     }
 
     fn needs_newline_sep(&self, rule: &Rule) -> bool {
@@ -258,88 +203,153 @@ where
         buffer[..end].to_string()
     }
 
-    fn transform_pair(&mut self, pair: Pair<Rule>) -> String {
+    fn act_on_pair(&mut self, pair: Pair<Rule>) -> String {
         let rule = pair.as_rule();
-        if let Rule::text = rule {
+        if matches!(rule, Rule::text | Rule::link_text | Rule::code) {
             let text = pair.as_str().to_string();
-            return self.transform_raw_text(text);
+            return self.act_on_raw_text(text);
         }
         let mut inner = pair.into_inner();
-        println!("Transform {rule:?}");
         let add_newline = self.needs_newline_sep(&rule);
-        let text = match rule {
-            Rule::h1 => self
+        let mut text: String = "".to_string();
+        match rule {
+            Rule::h1 if self.peek => self
                 .transformer
-                .transform_header(1, next_inner_string(&mut inner).unwrap()),
-            Rule::h2 => self
+                .peek_header(1, next_inner_string(&mut inner).unwrap()),
+            Rule::h1 => {
+                text = self
+                    .transformer
+                    .transform_header(1, next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::h2 if self.peek => self
                 .transformer
-                .transform_header(2, next_inner_string(&mut inner).unwrap()),
-            Rule::h3 => self
+                .peek_header(2, next_inner_string(&mut inner).unwrap()),
+            Rule::h2 => {
+                text = self
+                    .transformer
+                    .transform_header(2, next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::h3 if self.peek => self
                 .transformer
-                .transform_header(3, next_inner_string(&mut inner).unwrap()),
-            Rule::h4 => self
+                .peek_header(3, next_inner_string(&mut inner).unwrap()),
+            Rule::h3 => {
+                text = self
+                    .transformer
+                    .transform_header(3, next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::h4 if self.peek => self
                 .transformer
-                .transform_header(4, next_inner_string(&mut inner).unwrap()),
-            Rule::h5 => self
+                .peek_header(4, next_inner_string(&mut inner).unwrap()),
+            Rule::h4 => {
+                text = self
+                    .transformer
+                    .transform_header(4, next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::h5 if self.peek => self
                 .transformer
-                .transform_header(5, next_inner_string(&mut inner).unwrap()),
-            Rule::h6 => self
+                .peek_header(5, next_inner_string(&mut inner).unwrap()),
+            Rule::h5 => {
+                text = self
+                    .transformer
+                    .transform_header(5, next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::h6 if self.peek => self
                 .transformer
-                .transform_header(6, next_inner_string(&mut inner).unwrap()),
-            Rule::italic => self
+                .peek_header(6, next_inner_string(&mut inner).unwrap()),
+            Rule::h6 => {
+                text = self
+                    .transformer
+                    .transform_header(6, next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::italic if self.peek => self
                 .transformer
-                .transform_italic(next_inner_string(&mut inner).unwrap()),
-            Rule::bold => self
+                .peek_italic(next_inner_string(&mut inner).unwrap()),
+            Rule::italic => {
+                text = self
+                    .transformer
+                    .transform_italic(next_inner_string(&mut inner).unwrap())
+            }
+
+            Rule::bold if self.peek => self
                 .transformer
-                .transform_bold(next_inner_string(&mut inner).unwrap()),
+                .peek_bold(next_inner_string(&mut inner).unwrap()),
+            Rule::bold => {
+                text = self
+                    .transformer
+                    .transform_bold(next_inner_string(&mut inner).unwrap())
+            }
+
             Rule::link => {
-                let text = inner.next().unwrap();
-                let text = self.transform_pair(text);
+                let link_text = self.get_rich_text(inner.len() - 1, &mut inner);
                 let url = next_inner_string(&mut inner).unwrap();
-                self.transformer.transform_link(text, url)
+                if self.peek {
+                    self.transformer.peek_link(link_text, url);
+                } else {
+                    text = self.transformer.transform_link(link_text, url);
+                }
             }
             Rule::reflink => {
-                let text = inner.next().unwrap();
-                let text = self.transform_pair(text);
+                let link_text = self.get_rich_text(inner.len() - 1, &mut inner);
                 let slug = next_inner_string(&mut inner).unwrap();
-                self.transformer.transform_reflink(text, slug)
+                if self.peek {
+                    self.transformer.peek_reflink(link_text, slug);
+                } else {
+                    text = self.transformer.transform_reflink(link_text, slug);
+                }
             }
             Rule::refurl => {
                 let slug = next_inner_string(&mut inner).unwrap();
                 let url = next_inner_string(&mut inner).unwrap();
-                self.transformer.transform_refurl(slug, url)
+                if self.peek {
+                    println!("Peek url");
+                    self.transformer.peek_refurl(slug, url);
+                } else {
+                    text = self.transformer.transform_refurl(slug, url);
+                }
             }
             Rule::quote => {
-                let text = inner.next().unwrap();
-                let text = self.transform_pair(text);
+                let text = self.get_rich_text(inner.len(), &mut inner);
                 self.in_quote = true;
                 let buffer = self.buffers.get_mut(0).unwrap();
                 *buffer += text.as_str();
                 *buffer += "\n";
-                "".to_string()
             }
-            Rule::codeblock => self
+
+            Rule::codeblock if self.peek => self
                 .transformer
-                .transform_codeblock(self.get_whole_block(&mut inner, "\n")),
-            Rule::code => {
-                let code_text = next_inner_string(&mut inner).unwrap();
-                self.transformer.transform_code(code_text)
+                .peek_codeblock(self.get_whole_block(&mut inner, "\n")),
+            Rule::codeblock => {
+                text = self
+                    .transformer
+                    .transform_codeblock(self.get_whole_block(&mut inner, "\n"))
             }
-            Rule::horiz_sep => self.transformer.transform_horizontal_separator(),
+            Rule::inline_code => {
+                let code_text = next_inner_string(&mut inner).unwrap();
+                if self.peek {
+                    self.transformer.peek_inline_code(code_text)
+                } else {
+                    text = self.transformer.transform_inline_code(code_text)
+                }
+            }
+            Rule::horiz_sep if self.peek => self.transformer.peek_horizontal_separator(),
+            Rule::horiz_sep => text = self.transformer.transform_horizontal_separator(),
             Rule::file | Rule::rich_txt => {
-                let mut buffer = "".to_string();
                 if inner.len() == 0 {
-                    return self.transform_raw_text(inner.as_str().to_string());
+                    return self.act_on_raw_text(inner.as_str().to_string());
                 }
                 for child in inner {
-                    buffer += self.transform_pair(child).as_str();
+                    text += self.act_on_pair(child).as_str();
                 }
-                println!("rich text {buffer}");
-                buffer
             }
+            Rule::EOI => {}
             r => {
                 println!("{r:?} not implemented");
-                "".to_string()
             }
         };
         if add_newline {

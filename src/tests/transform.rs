@@ -23,7 +23,7 @@ fn test_transform_string() {
     impl MarkdownTransformer for DummyTransform {}
     let mut t = DummyTransform;
     let res = transform_markdown_string("".to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn test_transform_header() {
     for level in 1..7 {
         let res =
             transform_markdown_string(format!("start\n{} header\nend", "#".repeat(level)), &mut t);
-        assert!(res.is_ok());
+        assert!(res.is_ok(), "Error on transformation: {res:?}");
         assert_eq!(res.unwrap(), format!("start\nh{level}\nend"));
     }
 }
@@ -55,7 +55,7 @@ fn test_transform_italic() {
     let mut t = DummyTransform;
 
     let res = transform_markdown_string("*toto*".to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), "italic".to_string());
 }
 
@@ -70,7 +70,7 @@ fn test_transform_bold() {
     let mut t = DummyTransform;
 
     let res = transform_markdown_string("**toto**".to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), "bold".to_string());
 }
 
@@ -88,11 +88,11 @@ fn test_transform_link() {
     let mut t = DummyTransform;
 
     let res = transform_markdown_string("[a](b)".to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), "a: b".to_string());
 
     let res = transform_markdown_string("[a **bold** c](b)".to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), "a bold c: b".to_string());
 }
 
@@ -110,7 +110,7 @@ fn test_transform_quote() {
     let input = "> Je suis une truite\nJe suis un saumon\n\n";
     let output = "QUOTE\nJe suis une truite\nJe suis un saumon\nQUOTE";
     let res = transform_markdown_string(input.to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
 }
 
@@ -127,7 +127,7 @@ fn test_transform_codeblock() {
     let input = "start\n```\nsome\ncode\n```\nend";
     let output = "start\nCODEBLOCK\nsome\ncode\nCODEBLOCK\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
 }
 
@@ -135,7 +135,7 @@ fn test_transform_codeblock() {
 fn test_transform_inline_code() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
-        fn transform_code(&mut self, text: String) -> String {
+        fn transform_inline_code(&mut self, text: String) -> String {
             format!("CODE {text} CODE")
         }
     }
@@ -144,7 +144,7 @@ fn test_transform_inline_code() {
     let input = "start `some code` end";
     let output = "start CODE some code CODE end";
     let res = transform_markdown_string(input.to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
 }
 
@@ -161,6 +161,6 @@ fn test_transform_horiz_sep() {
     let input = "start\n---\nend";
     let output = "start\n=== HORIZ SEPARATOR ===\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
-    assert!(res.is_ok());
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
 }

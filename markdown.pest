@@ -1,12 +1,40 @@
 // character sets
-char         = _{ ASCII_ALPHANUMERIC | CODE_SYMBOLS | SAFE_SYMBOLS | " " }
-text         =  { char+ }
-SAFE_SYMBOLS = _{ "." | "_" | "/" | "\\" | "!" | "?" }
-CODE_SYMBOLS = _{ "(" | ")" | "{" | "}" | ";" | ">" | "<" | "\"" }
-// That could be interpreted as markdown
-UNSAFE_SYMBOLS = _{ "`" | "-" | "#" }
-URL_CHARS      = _{ ASCII_ALPHANUMERIC | "/" | "." | "_" | "-" | "%" }
-slug           =  { (ASCII_ALPHANUMERIC | "_" | "-" | ".")* }
+char_not_sym   = _{ (ASCII_ALPHANUMERIC | " ") }
+SYMBOLS        = _{
+    ","
+  | "."
+  | "_"
+  | "/"
+  | "\\"
+  | "?"
+  | ":"
+  | "("
+  | ")"
+  | "{"
+  | "}"
+  | ";"
+  | ">"
+  | "<"
+  | "'"
+  | "\""
+  | "="
+  | "-"
+  | "#"
+  | "["
+  | "]"
+  | "!"
+  | "`"
+  | INLINE_SYMBOLS
+}
+URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" }
+INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
+
+// Types of text in a document
+text        = { (char_not_sym | (!INLINE_SYMBOLS ~ SYMBOLS))+ }
+code        = { (char_not_sym | (!("`") ~ SYMBOLS))+ }
+comment_txt = { (char_not_sym | (!("-") ~ SYMBOLS))+ }
+link_text   = { (char_not_sym | (!(INLINE_SYMBOLS | "]") ~ SYMBOLS))+ }
+slug        = { (ASCII_ALPHANUMERIC | "_" | "-" | ".")* }
 
 // BLOCK TYPES
 // headers
@@ -18,20 +46,21 @@ h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
 quote     = { "> " ~ rich_txt }
-codeblock = { "```" ~ (" " | NEWLINE)? ~ (text | NEWLINE | "\\`")* ~ "```" }
-comment   = { "<!--" ~ (" " | NEWLINE)? ~ (text | NEWLINE)* ~ (" " | NEWLINE)? ~ "-->" }
+codeblock = { "```" ~ (" " | NEWLINE)? ~ (code | NEWLINE)* ~ "```" }
+comment   = { "<!--" ~ (" " | NEWLINE)? ~ (comment_txt | NEWLINE)* ~ (" " | NEWLINE)? ~ "-->" }
 
 block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment }
 
 // INLINE SYMBOLS
-bold          =  { ("*"){2} ~ rich_txt? ~ "**" }
-italic        =  { ("*"){1} ~ !("*") ~ rich_txt? ~ "*" }
-code          =  { ("`"){1} ~ !("`") ~ (text | NEWLINE)+ ~ "`" }
+bold          =  { "**" ~ rich_txt? ~ "**" }
+italic        =  { "*" ~ !("*") ~ rich_txt? ~ "*" }
+inline_code   =  { ("`"){1} ~ !("`") ~ (code | NEWLINE)+ ~ "`" }
 url           =  { URL_CHARS* }
-link          =  { "[" ~ rich_txt ~ "](" ~ url ~ ")" }
-reflink       =  { "[" ~ rich_txt ~ "][" ~ slug ~ "]" }
+image         =  { "![" ~ (inline_symbol | link_text) ~ "](" ~ url ~ ")" }
+link          =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
+reflink       =  { "[" ~ (inline_symbol | link_text) ~ "][" ~ slug ~ "]" }
 refurl        =  { "[" ~ slug ~ "]:" ~ (" ")* ~ url }
-inline_symbol = _{ italic | bold | code | link | reflink | refurl }
+inline_symbol = _{ italic | bold | inline_code | link | reflink | refurl | image }
 
 // BLOCKS
 rich_txt  = { (inline_symbol | text)* }
@@ -42,4 +71,3 @@ text_line = _{ block_type | horiz_sep | rich_txt }
 file      =  {
     SOI ~ (text_line ~ NEWLINE)* ~ text_line? ~ EOI
 }
-

@@ -9,7 +9,6 @@ fn test_peek_reflink() {
     }
     impl MarkdownTransformer for DummyTransform {
         fn transform_reflink(&mut self, text: String, slug: String) -> String {
-            println!("{text}");
             let url = self.refs.get(&slug);
             assert!(url.is_some());
             format!("<a href=\"{}\">{text}</a>", url.unwrap())
