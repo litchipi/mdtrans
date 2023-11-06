@@ -37,9 +37,10 @@ fn test_transform_header() {
     let mut t = DummyTransform;
 
     for level in 1..7 {
-        let res = transform_markdown_string(format!("{} header", "#".repeat(level)), &mut t);
+        let res =
+            transform_markdown_string(format!("start\n{} header\nend", "#".repeat(level)), &mut t);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), format!("h{level}"));
+        assert_eq!(res.unwrap(), format!("start\nh{level}\nend"));
     }
 }
 
@@ -108,6 +109,23 @@ fn test_transform_quote() {
 
     let input = "> Je suis une truite\nJe suis un saumon\n\n";
     let output = "QUOTE\nJe suis une truite\nJe suis un saumon\nQUOTE";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), output.to_string());
+}
+
+#[test]
+fn test_transform_codeblock() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_codeblock(&mut self, text: String) -> String {
+            format!("CODEBLOCK\n{text}\nCODEBLOCK")
+        }
+    }
+    let mut t = DummyTransform;
+
+    let input = "start\n```\nsome code\n```\nend";
+    let output = "start\nCODEBLOCK\nsome code\nCODEBLOCK\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), output.to_string());

@@ -2,7 +2,7 @@ use pest::{
     iterators::{Pair, Pairs},
     Parser,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, unimplemented};
 
 use crate::{errors::Errcode, MarkdownParser, Rule};
 
@@ -64,6 +64,11 @@ pub trait MarkdownTransformer {
 
     fn peek_quote(&mut self, _text: String) {}
     fn transform_quote(&mut self, _text: String) -> String {
+        unimplemented!()
+    }
+
+    fn peek_codeblock(&mut self, _text: String) {}
+    fn transform_codeblock(&mut self, _text: String) -> String {
         unimplemented!()
     }
 }
@@ -190,7 +195,10 @@ where
                 self.in_quote = true;
                 *self.buffers.get_mut(0).unwrap() += quote_text.as_str();
             }
-            Rule::codeblock => todo!(),
+            Rule::codeblock => {
+                let code_text = next_inner_string(&mut inner).unwrap();
+                self.transformer.peek_codeblock(code_text)
+            }
             Rule::code => todo!(),
             Rule::horiz_sep => todo!(),
             r => {
@@ -214,6 +222,20 @@ where
         self.transformer.transform_text(text)
     }
 
+    fn is_block_type(&self, rule: &Rule) -> bool {
+        matches!(
+            rule,
+            Rule::h1
+                | Rule::h2
+                | Rule::h3
+                | Rule::h4
+                | Rule::h5
+                | Rule::h6
+                | Rule::codeblock
+                | Rule::comment
+        )
+    }
+
     fn transform_pair(&mut self, pair: Pair<Rule>) -> String {
         let rule = pair.as_rule();
         if let Rule::text = rule {
@@ -222,7 +244,8 @@ where
         }
         let mut inner = pair.into_inner();
         println!("Transform {rule:?}");
-        match rule {
+        let add_newline = self.is_block_type(&rule);
+        let text = match rule {
             Rule::h1 => self
                 .transformer
                 .transform_header(1, next_inner_string(&mut inner).unwrap()),
@@ -264,6 +287,21 @@ where
                 let url = next_inner_string(&mut inner).unwrap();
                 self.transformer.transform_refurl(slug, url)
             }
+            Rule::quote => {
+                let text = inner.next().unwrap();
+                let text = self.transform_pair(text);
+                self.in_quote = true;
+                let buffer = self.buffers.get_mut(0).unwrap();
+                *buffer += text.as_str();
+                *buffer += "\n";
+                "".to_string()
+            }
+            Rule::codeblock => {
+                let code_text = next_inner_string(&mut inner).unwrap();
+                self.transformer.transform_codeblock(code_text)
+            }
+            Rule::code => todo!(),
+            Rule::horiz_sep => todo!(),
             Rule::file | Rule::rich_txt => {
                 let mut buffer = "".to_string();
                 if inner.len() == 0 {
@@ -275,22 +313,15 @@ where
                 println!("rich text {buffer}");
                 buffer
             }
-            Rule::quote => {
-                let text = inner.next().unwrap();
-                let text = self.transform_pair(text);
-                self.in_quote = true;
-                let buffer = self.buffers.get_mut(0).unwrap();
-                *buffer += text.as_str();
-                *buffer += "\n";
-                "".to_string()
-            }
-            Rule::codeblock => todo!(),
-            Rule::code => todo!(),
-            Rule::horiz_sep => todo!(),
             r => {
                 println!("{r:?} not implemented");
                 "".to_string()
             }
+        };
+        if add_newline {
+            "\n".to_string() + text.as_str() + "\n"
+        } else {
+            text
         }
     }
 }
