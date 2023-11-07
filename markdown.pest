@@ -1,11 +1,12 @@
 // character sets
 char_not_sym   = _{ (ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS | WHITESPACES) }
-ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" }
+ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" }
 SPECIAL_CHARS  = _{ "ç" | "€" }
 WHITESPACES    = _{ " " | "\t" }
 SYMBOLS        = _{
     ","
   | "%"
+  | "^"
   | "~"
   | "."
   | "_"
@@ -42,7 +43,7 @@ URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@"
 INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
 
 // Types of text in a document
-text        = { (char_not_sym | (!INLINE_SYMBOLS ~ SYMBOLS))+ }
+text        = { (char_not_sym | SYMBOLS)+ } //(!INLINE_SYMBOLS ~ SYMBOLS))+ }
 code        = { (char_not_sym | (!("`") ~ SYMBOLS))+ }
 comment_txt = { (char_not_sym | (!("-") ~ SYMBOLS))+ }
 link_text   = { (char_not_sym | (!(INLINE_SYMBOLS | "]") ~ SYMBOLS))+ }
@@ -57,26 +58,33 @@ h4 = { "#### " ~ rich_txt }
 h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
-quote     = { "> " ~ rich_txt }
-codeblock = { "```" ~ (WHITESPACES | NEWLINE)? ~ (code | NEWLINE)* ~ "```" }
-comment   = { "<!--" ~ (WHITESPACES | NEWLINE)? ~ (comment_txt | NEWLINE)* ~ (WHITESPACES | NEWLINE)? ~ "-->" }
+list_element_under = _{ NEWLINE ~ !("- ") ~ rich_txt_some }
+list_element       =  { "- " ~ rich_txt ~ list_element_under* }
+list               =  { list_element ~ (NEWLINE+ ~ list_element)* }
+quote              =  { "> " ~ rich_txt }
+codeblock          =  { "```" ~ (WHITESPACES | NEWLINE)? ~ (code | NEWLINE)* ~ "```" }
+comment            =  { "<!--" ~ (WHITESPACES | NEWLINE)? ~ (comment_txt | NEWLINE)* ~ (WHITESPACES | NEWLINE)? ~ "-->" }
 
-block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment }
+block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment | list }
 
 // INLINE SYMBOLS
-bold          =  { "**" ~ (rich_txt ~ NEWLINE)* ~ rich_txt? ~ "**" }
-italic        =  { "*" ~ !("*") ~ (rich_txt ~ NEWLINE)* ~ rich_txt? ~ "*" }
-inline_code   =  { ("`"){1} ~ !("`") ~ (code | NEWLINE)+ ~ "`" }
-url           =  { URL_CHARS* }
-image         =  { "![" ~ link_text* ~ "](" ~ url ~ ")" }
-link          =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
-reflink       =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
-refurl        =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
-inline_symbol = _{ italic | bold | inline_code | link | reflink | refurl | image }
+bold_content   = _{ (italic | inline_code | link | reflink | refurl | image | text)* }
+bold           =  { "**" ~ (bold_content ~ NEWLINE)* ~ bold_content? ~ "**" }
+italic_content = _{ (bold | inline_code | link | reflink | refurl | image | text)* }
+italic         =  { "*" ~ !("*") ~ (italic_content ~ NEWLINE)* ~ italic_content? ~ "*" }
+inline_code    =  { ("`"){1} ~ !("`") ~ (code | NEWLINE)+ ~ "`" }
+url            =  { URL_CHARS* }
+image          =  { "![" ~ link_text* ~ "](" ~ url ~ ")" }
+link           =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
+reflink        =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
+refurl         =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
+inline_symbol  = _{ italic | bold | inline_code | link | reflink | refurl | image }
 
 // BLOCKS
-rich_txt  = { (inline_symbol | text)* }
-horiz_sep = { ("-"){3, } }
+rich_txt       =  { rich_txt_maybe }
+rich_txt_maybe = _{ (inline_symbol | text)* }
+rich_txt_some  = _{ (inline_symbol | text)+ }
+horiz_sep      =  { ("-"){3, } }
 
 // Parser groups
 text_line = _{ block_type | horiz_sep | rich_txt }
@@ -84,6 +92,6 @@ file      =  {
     SOI ~ (text_line ~ NEWLINE)* ~ text_line? ~ EOI
 }
 
+// TODO IMPORTANT   Add lists
 // TODO    Strikethrough text
-// TODO    Image add tags
-
+// TODO    Image added tags

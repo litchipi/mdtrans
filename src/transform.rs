@@ -83,6 +83,16 @@ pub trait MarkdownTransformer {
     fn transform_horizontal_separator(&mut self) -> String {
         unimplemented!("horizontal separator")
     }
+
+    fn peek_list(&mut self, _elements: Vec<String>) {}
+    fn transform_list(&mut self, _elements: Vec<String>) -> String {
+        unimplemented!("list")
+    }
+
+    fn peek_list_element(&self, _element: String) {}
+    fn transform_list_element(&self, _element: String) -> String{
+        unimplemented!("list element")
+    }
 }
 
 pub fn transform_markdown<F, O, T>(
@@ -122,6 +132,7 @@ fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
 pub struct ParseState<'a, T> {
     peek: bool,
     in_quote: bool,
+    in_list: bool,
     buffers: [String; 1],
     transformer: &'a mut T,
 }
@@ -134,6 +145,7 @@ where
         ParseState {
             peek: false,
             in_quote: false,
+            in_list: false,
             buffers: [String::new(); 1],
             transformer,
         }
@@ -142,6 +154,7 @@ where
     fn reset(&mut self) {
         self.peek = false;
         self.in_quote = false;
+        self.in_list = false;
         self.buffers = [String::new(); 1];
         self.transformer.reset();
     }
@@ -190,6 +203,7 @@ where
                 | Rule::codeblock
                 | Rule::comment
                 | Rule::horiz_sep
+                | Rule::list
         )
     }
 
@@ -313,10 +327,10 @@ where
                 }
             }
             Rule::quote => {
-                let text = self.get_rich_text(inner.len(), &mut inner);
+                let quote_text = self.get_rich_text(inner.len(), &mut inner);
                 self.in_quote = true;
                 let buffer = self.buffers.get_mut(0).unwrap();
-                *buffer += text.as_str();
+                *buffer += quote_text.as_str();
                 *buffer += "\n";
             }
 
@@ -355,6 +369,22 @@ where
                     self.transformer.peek_image(img_alt, url, added_tags);
                 } else {
                     text = self.transformer.transform_image(img_alt, url, added_tags);
+                }
+            }
+            Rule::list => {
+                let elements : Vec<String> = inner.map(|el| self.act_on_pair(el)).collect();
+                if self.peek {
+                    self.transformer.peek_list(elements);
+                } else {
+                    text = self.transformer.transform_list(elements);
+                }
+            }
+            Rule::list_element => {
+                let element_text = self.get_rich_text(inner.len(), &mut inner);
+                if self.peek {
+                    self.transformer.peek_list_element(element_text);
+                } else {
+                    text = self.transformer.transform_list_element(element_text);
                 }
             }
             r => {

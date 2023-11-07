@@ -164,3 +164,28 @@ fn test_transform_horiz_sep() {
     assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
 }
+
+#[test]
+fn test_transform_list() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_list(&mut self, elements: Vec<String>) -> String {
+            elements.join(", ")
+        }
+
+        fn transform_bold(&mut self, text: String) -> String {
+            format!("BOLD {text} BOLD")
+        }
+
+        fn transform_italic(&mut self, text: String) -> String {
+            format!("ITALIC {text} ITALIC")
+        }
+    }
+    let mut t = DummyTransform;
+
+    let input = "start\n- a\n- **b**\n- *c*\n\nend";
+    let output = "start\na, BOLD b BOLD, ITALIC c ITALIC\nend";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output.to_string());
+}
