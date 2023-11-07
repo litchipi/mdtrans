@@ -16,32 +16,32 @@ pub trait MarkdownTransformer {
 
     fn peek_header(&mut self, _level: usize, _text: String) {}
     fn transform_header(&mut self, _level: usize, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("header")
     }
 
     fn peek_bold(&mut self, _text: String) {}
     fn transform_bold(&mut self, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("bold")
     }
 
     fn peek_italic(&mut self, _text: String) {}
     fn transform_italic(&mut self, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("italic")
     }
 
     fn peek_reflink(&mut self, _text: String, _slug: String) {}
     fn transform_reflink(&mut self, _text: String, _slug: String) -> String {
-        unimplemented!()
+        unimplemented!("reflink")
     }
 
     fn peek_refurl(&mut self, _slug: String, _url: String) {}
     fn transform_refurl(&mut self, _slug: String, _url: String) -> String {
-        unimplemented!()
+        unimplemented!("refurl")
     }
 
     fn peek_link(&mut self, _text: String, _url: String) {}
     fn transform_link(&mut self, _text: String, _url: String) -> String {
-        unimplemented!()
+        unimplemented!("link")
     }
 
     fn peek_image(&mut self, _alt: String, _url: String, _add_tags: HashMap<String, String>) {}
@@ -51,37 +51,37 @@ pub trait MarkdownTransformer {
         _url: String,
         _add_tags: HashMap<String, String>,
     ) -> String {
-        unimplemented!()
+        unimplemented!("image")
     }
 
     fn peek_comment(&mut self, _text: String) {}
     fn transform_comment(&mut self, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("comment")
     }
 
     fn peek_strikethrough(&mut self) {}
     fn transform_strikethrough(&mut self) -> String {
-        unimplemented!()
+        unimplemented!("strikethrough")
     }
 
     fn peek_quote(&mut self, _text: String) {}
     fn transform_quote(&mut self, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("quote")
     }
 
     fn peek_codeblock(&mut self, _text: String) {}
     fn transform_codeblock(&mut self, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("codeblock")
     }
 
     fn peek_inline_code(&mut self, _text: String) {}
     fn transform_inline_code(&mut self, _text: String) -> String {
-        unimplemented!()
+        unimplemented!("inline code")
     }
 
     fn peek_horizontal_separator(&mut self) {}
     fn transform_horizontal_separator(&mut self) -> String {
-        unimplemented!()
+        unimplemented!("horizontal separator")
     }
 }
 
@@ -307,7 +307,6 @@ where
                 let slug = next_inner_string(&mut inner).unwrap();
                 let url = next_inner_string(&mut inner).unwrap();
                 if self.peek {
-                    println!("Peek url");
                     self.transformer.peek_refurl(slug, url);
                 } else {
                     text = self.transformer.transform_refurl(slug, url);
@@ -348,6 +347,16 @@ where
                 }
             }
             Rule::EOI => {}
+            Rule::image => {
+                let img_alt = next_inner_string(&mut inner).unwrap();
+                let url = next_inner_string(&mut inner).unwrap();
+                let added_tags = HashMap::new(); // TODO    Added tags
+                if self.peek {
+                    self.transformer.peek_image(img_alt, url, added_tags);
+                } else {
+                    text = self.transformer.transform_image(img_alt, url, added_tags);
+                }
+            }
             r => {
                 println!("{r:?} not implemented");
             }

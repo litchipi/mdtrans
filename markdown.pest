@@ -1,7 +1,12 @@
 // character sets
-char_not_sym   = _{ (ASCII_ALPHANUMERIC | " ") }
+char_not_sym   = _{ (ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS | WHITESPACES) }
+ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" }
+SPECIAL_CHARS  = _{ "ç" | "€" }
+WHITESPACES    = _{ " " | "\t" }
 SYMBOLS        = _{
     ","
+  | "%"
+  | "~"
   | "."
   | "_"
   | "/"
@@ -17,8 +22,11 @@ SYMBOLS        = _{
   | "<"
   | "'"
   | "\""
+  | "“"
+  | "”"
   | "="
   | "-"
+  | "+"
   | "#"
   | "["
   | "]"
@@ -27,9 +35,10 @@ SYMBOLS        = _{
   | "&"
   | "|"
   | "@"
+  | "$"
   | INLINE_SYMBOLS
 }
-URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" }
+URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" }
 INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
 
 // Types of text in a document
@@ -49,20 +58,20 @@ h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
 quote     = { "> " ~ rich_txt }
-codeblock = { "```" ~ (" " | NEWLINE)? ~ (code | NEWLINE)* ~ "```" }
-comment   = { "<!--" ~ (" " | NEWLINE)? ~ (comment_txt | NEWLINE)* ~ (" " | NEWLINE)? ~ "-->" }
+codeblock = { "```" ~ (WHITESPACES | NEWLINE)? ~ (code | NEWLINE)* ~ "```" }
+comment   = { "<!--" ~ (WHITESPACES | NEWLINE)? ~ (comment_txt | NEWLINE)* ~ (WHITESPACES | NEWLINE)? ~ "-->" }
 
 block_type = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment }
 
 // INLINE SYMBOLS
-bold          =  { "**" ~ rich_txt? ~ "**" }
-italic        =  { "*" ~ !("*") ~ rich_txt? ~ "*" }
+bold          =  { "**" ~ (rich_txt ~ NEWLINE)* ~ rich_txt? ~ "**" }
+italic        =  { "*" ~ !("*") ~ (rich_txt ~ NEWLINE)* ~ rich_txt? ~ "*" }
 inline_code   =  { ("`"){1} ~ !("`") ~ (code | NEWLINE)+ ~ "`" }
 url           =  { URL_CHARS* }
-image         =  { "![" ~ (inline_symbol | link_text) ~ "](" ~ url ~ ")" }
+image         =  { "![" ~ link_text* ~ "](" ~ url ~ ")" }
 link          =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
-reflink       =  { "[" ~ (inline_symbol | link_text) ~ "][" ~ slug ~ "]" }
-refurl        =  { "[" ~ slug ~ "]:" ~ (" ")* ~ url }
+reflink       =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
+refurl        =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
 inline_symbol = _{ italic | bold | inline_code | link | reflink | refurl | image }
 
 // BLOCKS
@@ -74,3 +83,7 @@ text_line = _{ block_type | horiz_sep | rich_txt }
 file      =  {
     SOI ~ (text_line ~ NEWLINE)* ~ text_line? ~ EOI
 }
+
+// TODO    Strikethrough text
+// TODO    Image add tags
+
