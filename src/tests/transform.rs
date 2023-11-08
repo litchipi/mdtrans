@@ -169,6 +169,10 @@ fn test_transform_horiz_sep() {
 fn test_transform_list() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
+        fn transform_list_element(&self, element: String) -> String {
+            element
+        }
+
         fn transform_list(&mut self, elements: Vec<String>) -> String {
             elements.join(", ")
         }

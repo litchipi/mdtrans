@@ -90,7 +90,7 @@ pub trait MarkdownTransformer {
     }
 
     fn peek_list_element(&self, _element: String) {}
-    fn transform_list_element(&self, _element: String) -> String{
+    fn transform_list_element(&self, _element: String) -> String {
         unimplemented!("list element")
     }
 }
@@ -352,7 +352,7 @@ where
             }
             Rule::horiz_sep if self.peek => self.transformer.peek_horizontal_separator(),
             Rule::horiz_sep => text = self.transformer.transform_horizontal_separator(),
-            Rule::file | Rule::rich_txt => {
+            Rule::file | Rule::rich_txt | Rule::quote_txt => {
                 if inner.len() == 0 {
                     return self.act_on_raw_text(inner.as_str().to_string());
                 }
@@ -372,7 +372,7 @@ where
                 }
             }
             Rule::list => {
-                let elements : Vec<String> = inner.map(|el| self.act_on_pair(el)).collect();
+                let elements: Vec<String> = inner.map(|el| self.act_on_pair(el)).collect();
                 if self.peek {
                     self.transformer.peek_list(elements);
                 } else {

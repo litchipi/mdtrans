@@ -25,11 +25,11 @@ impl MarkdownTransformer for Transformer {
     }
 
     fn transform_image(
-            &mut self,
-            alt: String,
-            url: String,
-            _add_tags: std::collections::HashMap<String, String>,
-        ) -> String {
+        &mut self,
+        alt: String,
+        url: String,
+        _add_tags: std::collections::HashMap<String, String>,
+    ) -> String {
         format!("<img src=\"{url}\" alt=\"{alt}\">")
     }
 
@@ -84,7 +84,8 @@ impl MarkdownTransformer for Transformer {
 }
 
 fn create_page(post: String) -> String {
-    format!("
+    format!(
+        "
         <!DOCTYPE html>
         <html lang=\"en\">
         <head>
@@ -93,17 +94,22 @@ fn create_page(post: String) -> String {
         </head>
         {post}
         </html>
-    ")
+    "
+    )
 }
 
 fn main() {
     let mut transformer = Transformer::default();
 
-
     for file in std::fs::read_dir("./examples/data").unwrap() {
         let tstart = std::time::Instant::now();
         let post_file = file.unwrap().path();
-        let fname = post_file.file_name().unwrap().to_os_string().into_string().unwrap();
+        let fname = post_file
+            .file_name()
+            .unwrap()
+            .to_os_string()
+            .into_string()
+            .unwrap();
         if !fname.ends_with(".md") {
             continue;
         }
