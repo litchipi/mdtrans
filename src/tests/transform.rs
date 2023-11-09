@@ -158,7 +158,7 @@ fn test_transform_horiz_sep() {
     }
     let mut t = DummyTransform;
 
-    let input = "start\n---\nend";
+    let input = "start\n\n---\nend";
     let output = "start\n=== HORIZ SEPARATOR ===\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
@@ -169,7 +169,7 @@ fn test_transform_horiz_sep() {
 fn test_transform_list() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
-        fn transform_list_element(&self, element: String) -> String {
+        fn transform_list_element(&mut self, element: String) -> String {
             element
         }
 

@@ -2,7 +2,7 @@
 char_not_sym   = _{ (ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS | WHITESPACES) }
 ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" }
 SPECIAL_CHARS  = _{ "ç" | "€" }
-WHITESPACES    = _{ " " | "\t" }
+WHITESPACES    = _{ (!vertical_space ~ " ") | "\t" }
 SYMBOLS        = _{
     ","
   | "%"
@@ -57,11 +57,12 @@ h6 = { "###### " ~ rich_txt }
 // list
 list_element_under = _{ NEWLINE ~ !("- ") ~ rich_txt_some }
 list_element       =  { "- " ~ rich_txt ~ list_element_under* }
-list               =  { list_element ~ (NEWLINE+ ~ list_element)* }
+list               =  { list_element ~ (NEWLINE+ ~ list_element)* ~ (NEWLINE | EOI) }
 
 // quote
-quote_txt = { inline_symbol | text | INLINE_SYMBOLS }
-quote     = { "> " ~ quote_txt* }
+quote_txt  = _{ inline_symbol | text | INLINE_SYMBOLS }
+quote_line =  { quote_txt+ ~ vertical_space? ~ &(NEWLINE | EOI) }
+quote      =  { "> " ~ quote_line* ~ (NEWLINE ~ ("> ")? ~ quote_line)* ~ (NEWLINE | EOI) }
 
 // code
 code = { (char_not_sym | (!("`") ~ SYMBOLS))+ }
@@ -96,8 +97,13 @@ link      =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
 reflink   =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
 refurl    =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
 
+// Paragraph
+paragraph_line = _{ (!block_type ~ rich_txt_some ~ vertical_space?)+ }
+paragraph      =  { paragraph_line ~ (NEWLINE ~ paragraph_line)* ~ &(NEWLINE | EOI) }
+
 // Separator
-horiz_sep = { ("-"){3, } }
+horiz_sep      = { ("-"){3, } }
+vertical_space = { "  " ~ &(NEWLINE | EOI) }
 
 // Meta
 rich_txt       =  { rich_txt_maybe }
@@ -107,7 +113,7 @@ rich_txt_some  = _{ (inline_symbol | text)+ }
 inline_symbol = _{ bold | italic | inline_code | link | reflink | refurl | image }
 block_type    = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment | list }
 
-text_line = _{ block_type | horiz_sep | rich_txt }
+text_line = _{ block_type | horiz_sep | &NEWLINE | paragraph }
 file      =  {
     SOI ~ (text_line ~ NEWLINE)* ~ text_line? ~ EOI
 }

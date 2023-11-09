@@ -11,7 +11,7 @@ pub struct Transformer {
 
 impl Transformer {
     fn sanitize_html(&self, text: String) -> String {
-        text.replace("<", "&lt;").replace(">", "&gt;")
+        text.replace('<', "&lt;").replace('>', "&gt;")
     }
 }
 
@@ -78,8 +78,16 @@ impl MarkdownTransformer for Transformer {
         buffer
     }
 
-    fn transform_list_element(&self, element: String) -> String {
+    fn transform_list_element(&mut self, element: String) -> String {
         format!("<li>{}</li>", self.sanitize_html(element))
+    }
+
+    fn transform_paragraph(&mut self, text: String) -> String {
+        format!("<p>{text}</p>")
+    }
+
+    fn transform_vertical_space(&mut self) -> String {
+        "<br/>".to_string()
     }
 }
 
@@ -113,7 +121,7 @@ fn main() {
         if !fname.ends_with(".md") {
             continue;
         }
-        println!("");
+        println!();
         let new_fname = fname.replace(".md", ".html");
         println!("{} -> {}", fname, new_fname);
         let post = std::fs::read_to_string(&post_file).unwrap();

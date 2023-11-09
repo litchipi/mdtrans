@@ -89,9 +89,19 @@ pub trait MarkdownTransformer {
         unimplemented!("list")
     }
 
-    fn peek_list_element(&self, _element: String) {}
-    fn transform_list_element(&self, _element: String) -> String {
+    fn peek_list_element(&mut self, _element: String) {}
+    fn transform_list_element(&mut self, _element: String) -> String {
         unimplemented!("list element")
+    }
+
+    fn peek_vertical_space(&mut self) {}
+    fn transform_vertical_space(&mut self) -> String {
+        "\n".to_string()
+    }
+
+    fn peek_paragraph(&mut self, _text: String) {}
+    fn transform_paragraph(&mut self, text: String) -> String {
+        text
     }
 }
 
@@ -131,8 +141,6 @@ fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
 
 pub struct ParseState<'a, T> {
     peek: bool,
-    in_quote: bool,
-    in_list: bool,
     buffers: [String; 1],
     transformer: &'a mut T,
 }
@@ -144,8 +152,6 @@ where
     fn new(transformer: &mut T) -> ParseState<T> {
         ParseState {
             peek: false,
-            in_quote: false,
-            in_list: false,
             buffers: [String::new(); 1],
             transformer,
         }
@@ -153,36 +159,22 @@ where
 
     fn reset(&mut self) {
         self.peek = false;
-        self.in_quote = false;
-        self.in_list = false;
         self.buffers = [String::new(); 1];
         self.transformer.reset();
     }
 
     fn get_rich_text(&mut self, nb: usize, inner: &mut Pairs<Rule>) -> String {
         assert!(nb <= inner.len());
-        let mut buffer = "".to_string();
-        let mut n = 0;
-        while n < nb {
-            let pair = inner.next().unwrap();
-            buffer += self.act_on_pair(pair).as_str();
-            n += 1;
-        }
-        buffer
+        let inners = (0..nb)
+            .map(|_| {
+                let pair = inner.next().unwrap();
+                self.act_on_pair(pair)
+            })
+            .collect::<Vec<String>>();
+        inners.join("")
     }
 
     fn act_on_raw_text(&mut self, text: String) -> String {
-        if self.in_quote {
-            if text.is_empty() {
-                self.in_quote = false;
-                let quote_text = self.buffers.get(0).unwrap().clone();
-                *self.buffers.get_mut(0).unwrap() = String::new();
-                return self.transformer.transform_quote(quote_text);
-            } else {
-                *self.buffers.get_mut(0).unwrap() += text.as_str();
-                return "".to_string();
-            }
-        }
         if self.peek {
             self.transformer.peek_text(text);
             "".to_string()
@@ -327,13 +319,22 @@ where
                 }
             }
             Rule::quote => {
-                let quote_text = self.get_rich_text(inner.len(), &mut inner);
-                self.in_quote = true;
-                let buffer = self.buffers.get_mut(0).unwrap();
-                *buffer += quote_text.as_str();
-                *buffer += "\n";
+                let lines = inner
+                    .map(|line| {
+                        assert_eq!(line.as_rule(), Rule::quote_line);
+                        self.act_on_pair(line)
+                    })
+                    .collect::<Vec<String>>();
+                let quote_text = lines.join("\n");
+                if self.peek {
+                    self.transformer.peek_quote(quote_text);
+                } else {
+                    text = self.transformer.transform_quote(quote_text);
+                }
             }
-
+            Rule::quote_line => {
+                text = self.get_rich_text(inner.len(), &mut inner);
+            }
             Rule::codeblock if self.peek => self
                 .transformer
                 .peek_codeblock(self.get_whole_block(&mut inner, "\n")),
@@ -386,6 +387,19 @@ where
                 } else {
                     text = self.transformer.transform_list_element(element_text);
                 }
+            }
+            Rule::paragraph => {
+                let paragraph_text = self.get_rich_text(inner.len(), &mut inner);
+                if self.peek {
+                    self.transformer.peek_paragraph(paragraph_text);
+                } else {
+                    text = self.transformer.transform_paragraph(paragraph_text);
+                }
+            }
+            Rule::vertical_space => if self.peek {
+                self.transformer.peek_vertical_space()
+            } else {
+                text = self.transformer.transform_vertical_space();
             }
             r => {
                 println!("{r:?} not implemented");
