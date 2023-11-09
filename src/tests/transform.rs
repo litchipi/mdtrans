@@ -18,12 +18,30 @@ fn test_trait_impl() {
 }
 
 #[test]
-fn test_transform_string() {
+fn test_transform_empty() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {}
     let mut t = DummyTransform;
     let res = transform_markdown_string("".to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
+}
+
+#[test]
+fn test_transform_string() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_text(&mut self, text: String) -> String {
+            text
+        }
+    }
+    let mut t = DummyTransform;
+    let res = transform_markdown_string("elzkaj".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), "elzkaj".to_string());
+
+    let res = transform_markdown_string("a\nb\nc".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), "a b c".to_string());
 }
 
 #[test]
@@ -118,14 +136,25 @@ fn test_transform_quote() {
 fn test_transform_codeblock() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
-        fn transform_codeblock(&mut self, text: String) -> String {
-            format!("CODEBLOCK\n{text}\nCODEBLOCK")
+        fn transform_codeblock(&mut self, lang: Option<String>, text: String) -> String {
+            let mut buffer = "CODEBLOCK".to_string();
+            if let Some(l) = lang {
+                buffer += format!(" {l}").as_str();
+            }
+            buffer += format!("\n{text}\nCODEBLOCK").as_str();
+            buffer
         }
     }
     let mut t = DummyTransform;
 
     let input = "start\n```\nsome\ncode\n```\nend";
     let output = "start\nCODEBLOCK\nsome\ncode\nCODEBLOCK\nend";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output.to_string());
+
+    let input = "start\n``` lang\nsome\ncode\n```\nend";
+    let output = "start\nCODEBLOCK lang\nsome\ncode\nCODEBLOCK\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());

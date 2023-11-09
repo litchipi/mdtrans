@@ -70,7 +70,7 @@ code = { (char_not_sym | (!("`") ~ SYMBOLS))+ }
 INLINE_CODE_DELIMITER = _{ "`" ~ !("`") }
 inline_code           =  { INLINE_CODE_DELIMITER ~ code* ~ INLINE_CODE_DELIMITER }
 CODEBLOCK_DELIMITER   = _{ "```" }
-codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES | NEWLINE)? ~ (code | NEWLINE)* ~ CODEBLOCK_DELIMITER }
+codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES* ~ slug)? ~ NEWLINE ~ (code | NEWLINE)* ~ CODEBLOCK_DELIMITER }
 
 // comments
 comment_txt = { (char_not_sym | (!("-") ~ SYMBOLS))+ }
@@ -98,8 +98,9 @@ reflink   =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
 refurl    =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
 
 // Paragraph
-paragraph_line = _{ (!block_type ~ rich_txt_some ~ vertical_space?)+ }
-paragraph      =  { paragraph_line ~ (NEWLINE ~ paragraph_line)* ~ &(NEWLINE | EOI) }
+paragraph_newline =  { NEWLINE }
+paragraph_line    = _{ (!block_type ~ rich_txt_some ~ vertical_space?)+ }
+paragraph         =  { paragraph_line ~ (paragraph_newline ~ paragraph_line)* ~ &(NEWLINE | EOI) }
 
 // Separator
 horiz_sep      = { ("-"){3, } }

@@ -53,8 +53,13 @@ impl MarkdownTransformer for Transformer {
         format!("<code>{}</code>", self.sanitize_html(text))
     }
 
-    fn transform_codeblock(&mut self, text: String) -> String {
-        format!("<pre><code>{}</code></pre>", self.sanitize_html(text))
+    fn transform_codeblock(&mut self, lang: Option<String>, text: String) -> String {
+        let mut buffer = "<pre".to_string();
+        if let Some(l) = lang {
+            buffer += format!(" class=\"lang-{}\"", l.to_lowercase()).as_str();
+        }
+        buffer += format!("><code>{}</code></pre>", self.sanitize_html(text)).as_str();
+        buffer
     }
 
     fn peek_refurl(&mut self, slug: String, url: String) {
