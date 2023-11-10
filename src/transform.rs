@@ -8,8 +8,6 @@ use crate::{errors::Errcode, MarkdownParser, Rule};
 
 #[allow(unused_variables)]
 pub trait MarkdownTransformer {
-    fn reset(&mut self) {}
-
     fn peek_text(&mut self, text: String) {}
     fn transform_text(&mut self, text: String) -> String {
         text
@@ -60,6 +58,7 @@ pub trait MarkdownTransformer {
         text
     }
 
+    // TODO    Strikethrough
     fn peek_strikethrough(&mut self, text: String) {}
     fn transform_strikethrough(&mut self, text: String) -> String {
         text
@@ -107,16 +106,27 @@ pub trait MarkdownTransformer {
 }
 
 pub fn transform_markdown<F, O, T>(
-    _input: F,
-    _output: O,
-    _transformer: &mut T,
-) -> Result<String, Errcode>
+    input: &mut F,
+    output: &mut O,
+    transformer: &mut T,
+) -> Result<usize, Errcode>
 where
     T: MarkdownTransformer,
     F: std::io::Read,
     O: std::io::Write,
 {
-    Ok("".to_string())
+    let mut md_string = String::new();
+    input.read_to_string(&mut md_string).unwrap();
+    let Some(parsed) = MarkdownParser::parse(Rule::file, &md_string)?.next() else {
+        return Err(Errcode::ParsingError(
+            "Parsed input returned an empty tree".to_string(),
+        ));
+    };
+
+    let mut parser = TransformFramework::new(transformer);
+    parser.act_on_pair(&mut ParseState::peek(), parsed.clone());
+    let result = parser.act_on_pair(&mut ParseState::default(), parsed);
+    Ok(output.write(result.as_bytes()).unwrap())
 }
 
 pub fn transform_markdown_string<T>(input: String, transformer: &mut T) -> Result<String, Errcode>

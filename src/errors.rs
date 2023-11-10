@@ -1,3 +1,4 @@
+// TODO    Remove all confort unwrap in the code, replace with recoverable errors
 #[derive(Debug)]
 pub enum Errcode {
     ParsingError(String),
