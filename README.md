@@ -1,5 +1,5 @@
 # Mdtrans
-Markdown parser and transformer, in Rust, using Pest
+Markdown parser and transformer, in Rust, using [Pest](https://pest.rs/)
 
 This is not the fastest parser / transformer, but it's built in order to provide the most flexibility to your needs.
 
