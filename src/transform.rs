@@ -6,92 +6,93 @@ use std::{collections::HashMap, unimplemented};
 
 use crate::{errors::Errcode, MarkdownParser, Rule};
 
+#[allow(unused_variables)]
 pub trait MarkdownTransformer {
     fn reset(&mut self) {}
 
-    fn peek_text(&mut self, _text: String) {}
+    fn peek_text(&mut self, text: String) {}
     fn transform_text(&mut self, text: String) -> String {
         text
     }
 
-    fn peek_header(&mut self, _level: usize, _text: String) {}
-    fn transform_header(&mut self, _level: usize, _text: String) -> String {
-        unimplemented!("header")
+    fn peek_header(&mut self, level: usize, text: String) {}
+    fn transform_header(&mut self, level: usize, text: String) -> String {
+        text
     }
 
-    fn peek_bold(&mut self, _text: String) {}
-    fn transform_bold(&mut self, _text: String) -> String {
-        unimplemented!("bold")
+    fn peek_bold(&mut self, text: String) {}
+    fn transform_bold(&mut self, text: String) -> String {
+        text
     }
 
-    fn peek_italic(&mut self, _text: String) {}
-    fn transform_italic(&mut self, _text: String) -> String {
-        unimplemented!("italic")
+    fn peek_italic(&mut self, text: String) {}
+    fn transform_italic(&mut self, text: String) -> String {
+        text
     }
 
-    fn peek_reflink(&mut self, _text: String, _slug: String) {}
-    fn transform_reflink(&mut self, _text: String, _slug: String) -> String {
-        unimplemented!("reflink")
+    fn peek_reflink(&mut self, text: String, slug: String) {}
+    fn transform_reflink(&mut self, text: String, slug: String) -> String {
+        text
     }
 
-    fn peek_refurl(&mut self, _slug: String, _url: String) {}
-    fn transform_refurl(&mut self, _slug: String, _url: String) -> String {
-        unimplemented!("refurl")
+    fn peek_refurl(&mut self, slug: String, url: String) {}
+    fn transform_refurl(&mut self, slug: String, url: String) -> String {
+        String::new()
     }
 
-    fn peek_link(&mut self, _text: String, _url: String) {}
-    fn transform_link(&mut self, _text: String, _url: String) -> String {
-        unimplemented!("link")
+    fn peek_link(&mut self, text: String, url: String) {}
+    fn transform_link(&mut self, text: String, url: String) -> String {
+        text
     }
 
-    fn peek_image(&mut self, _alt: String, _url: String, _add_tags: HashMap<String, String>) {}
+    fn peek_image(&mut self, alt: String, url: String, add_tags: HashMap<String, String>) {}
     fn transform_image(
         &mut self,
-        _alt: String,
-        _url: String,
-        _add_tags: HashMap<String, String>,
+        alt: String,
+        url: String,
+        add_tags: HashMap<String, String>,
     ) -> String {
-        unimplemented!("image")
+        alt
     }
 
-    fn peek_comment(&mut self, _text: String) {}
-    fn transform_comment(&mut self, _text: String) -> String {
-        unimplemented!("comment")
+    fn peek_comment(&mut self, text: String) {}
+    fn transform_comment(&mut self, text: String) -> String {
+        text
     }
 
-    fn peek_strikethrough(&mut self) {}
-    fn transform_strikethrough(&mut self) -> String {
-        unimplemented!("strikethrough")
+    fn peek_strikethrough(&mut self, text: String) {}
+    fn transform_strikethrough(&mut self, text: String) -> String {
+        text
     }
 
-    fn peek_quote(&mut self, _text: String) {}
-    fn transform_quote(&mut self, _text: String) -> String {
-        unimplemented!("quote")
+    fn peek_quote(&mut self, text: String) {}
+    fn transform_quote(&mut self, text: String) -> String {
+        text
     }
 
-    fn peek_codeblock(&mut self, _language: Option<String>, _text: String) {}
-    fn transform_codeblock(&mut self, _language: Option<String>, _text: String) -> String {
-        unimplemented!("codeblock")
+    fn peek_codeblock(&mut self, language: Option<String>, text: String) {}
+    fn transform_codeblock(&mut self, language: Option<String>, text: String) -> String {
+        text
     }
 
-    fn peek_inline_code(&mut self, _text: String) {}
-    fn transform_inline_code(&mut self, _text: String) -> String {
-        unimplemented!("inline code")
+    fn peek_inline_code(&mut self, text: String) {}
+    fn transform_inline_code(&mut self, text: String) -> String {
+        text
     }
 
     fn peek_horizontal_separator(&mut self) {}
     fn transform_horizontal_separator(&mut self) -> String {
-        unimplemented!("horizontal separator")
+        String::new()
     }
 
-    fn peek_list(&mut self, _elements: Vec<String>) {}
-    fn transform_list(&mut self, _elements: Vec<String>) -> String {
-        unimplemented!("list")
+    fn peek_list(&mut self, elements: Vec<String>) {}
+    fn transform_list(&mut self, elements: Vec<String>) -> String {
+        elements.join(", ")
     }
 
-    fn peek_list_element(&mut self, _element: String) {}
-    fn transform_list_element(&mut self, _element: String) -> String {
-        unimplemented!("list element")
+    fn peek_list_element(&mut self, element: String) {}
+    fn transform_list_element(&mut self, element: String) -> String {
+        element
     }
 
     fn peek_vertical_space(&mut self) {}
@@ -99,7 +100,7 @@ pub trait MarkdownTransformer {
         "\n".to_string()
     }
 
-    fn peek_paragraph(&mut self, _text: String) {}
+    fn peek_paragraph(&mut self, text: String) {}
     fn transform_paragraph(&mut self, text: String) -> String {
         text
     }
