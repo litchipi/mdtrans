@@ -1,5 +1,4 @@
 // character sets
-char_not_sym   = _{ (ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS | WHITESPACES) }
 ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" }
 SPECIAL_CHARS  = _{ "ç" | "€" }
 WHITESPACES    = _{ (!vertical_space ~ " ") | "\t" }
@@ -43,8 +42,12 @@ INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
 SYM_NOT_INLINE = _{ !INLINE_SYMBOLS ~ SYMBOLS }
 
 // Common
-text = { (char_not_sym | SYM_NOT_INLINE)+ }
-slug = { (ASCII_ALPHANUMERIC | "_" | "-" | ".")+ }
+char_not_sym_nospace = _{ ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS }
+char_not_sym         = _{ char_not_sym_nospace | WHITESPACES }
+char                 = _{ char_not_sym | SYM_NOT_INLINE }
+anychar              = _{ char_not_sym | SYMBOLS }
+text                 =  { char+ }
+slug                 =  { (ASCII_ALPHANUMERIC | "_" | "-" | ".")+ }
 
 // headers
 h1 = { "# " ~ rich_txt }
@@ -92,10 +95,16 @@ italic           =  { ITALIC_DELIMITER ~ italic_content* ~ ITALIC_DELIMITER }
 URL_CHARS = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" }
 url       =  { URL_CHARS* }
 link_text =  { (char_not_sym | (!(INLINE_SYMBOLS | "]") ~ SYMBOLS))+ | NEWLINE }
-image     =  { "![" ~ link_text* ~ "](" ~ url ~ ")" }
 link      =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
 reflink   =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
 refurl    =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
+
+// Images
+img_tag_key = { slug }
+img_tag_val = { char_not_sym_nospace+ | ("\"" ~ (!("]" | "\"") ~ anychar)* ~ "\"") }
+img_tag     = { img_tag_key ~ WHITESPACES* ~ ":" ~ WHITESPACES* ~ img_tag_val }
+image_tags  = { "[" ~ (img_tag ~ "," ~ WHITESPACES*)* ~ img_tag ~ "]" }
+image       = { "![" ~ link_text* ~ "](" ~ url ~ ")" ~ image_tags? }
 
 // Paragraph
 paragraph_newline =  { NEWLINE }
@@ -120,5 +129,4 @@ file      =  {
 }
 
 // TODO    Strikethrough text
-// TODO    Image added tags
 

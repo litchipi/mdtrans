@@ -222,3 +222,42 @@ fn test_transform_list() {
     assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
 }
+
+#[test]
+fn test_transform_image() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_image(
+            &mut self,
+            alt: String,
+            url: String,
+            add_tags: std::collections::HashMap<String, String>,
+        ) -> String {
+            let mut upper = false;
+            println!("{add_tags:?}");
+            if let Some(t) = add_tags.get("upper") {
+                if t == "true" {
+                    upper = true;
+                }
+            }
+            format!(
+                "{} -> {}",
+                if upper { alt.to_uppercase() } else { alt },
+                if upper { url.to_uppercase() } else { url }
+            )
+        }
+    }
+    let mut t = DummyTransform;
+
+    let input = "start\n![image alt](url)\nend";
+    let output = "start image alt -> url end";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output.to_string());
+
+    let input = "start\n![image alt](url)[a: b, c:   d, upper: true, d  : e]\nend";
+    let output = "start IMAGE ALT -> URL end";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output.to_string());
+}

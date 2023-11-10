@@ -137,7 +137,7 @@ fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
     inner.next().map(|p| p.as_str().to_string())
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ParseState {
     peek: bool,
     add_space: bool,
@@ -146,7 +146,10 @@ pub struct ParseState {
 impl ParseState {
     pub fn peek() -> ParseState {
         let default = Self::default();
-        ParseState { peek: true, ..default }
+        ParseState {
+            peek: true,
+            ..default
+        }
     }
 }
 
@@ -159,12 +162,15 @@ where
     T: MarkdownTransformer,
 {
     fn new(transformer: &mut T) -> TransformFramework<T> {
-        TransformFramework {
-            transformer,
-        }
+        TransformFramework { transformer }
     }
 
-    fn get_rich_text(&mut self, state: &mut ParseState, nb: usize, inner: &mut Pairs<Rule>) -> String {
+    fn get_rich_text(
+        &mut self,
+        state: &mut ParseState,
+        nb: usize,
+        inner: &mut Pairs<Rule>,
+    ) -> String {
         assert!(nb <= inner.len());
         let mut child_state = state.clone();
         let inners = (0..nb)
@@ -211,14 +217,56 @@ where
         buffer[..end].to_string()
     }
 
+    fn get_metadata(
+        &mut self,
+        state: &ParseState,
+        all_data: &mut Pairs<Rule>,
+    ) -> HashMap<String, String> {
+        let mut md = HashMap::new();
+        for kv in all_data.by_ref() {
+            let mut inner = kv.into_inner();
+            let mut state = state.clone();
+            let Some(key) = inner.next() else {
+                break;
+            };
+            let Some(val) = inner.next() else {
+                break;
+            };
+            let text_key = self.act_on_pair(&mut state, key);
+            let text_val = self.act_on_pair(&mut state, val);
+            md.insert(text_key, text_val);
+        }
+        md
+    }
+
+    fn is_raw_text(&self, rule: &Rule) -> bool {
+        matches!(
+            rule,
+            Rule::text | Rule::link_text | Rule::code | Rule::img_tag_key | Rule::img_tag_val
+        )
+    }
+
+    fn is_inline(&self, rule: &Rule) -> bool {
+        matches!(
+            rule,
+            Rule::text
+                | Rule::link_text
+                | Rule::code
+                | Rule::image
+                | Rule::bold
+                | Rule::italic
+                | Rule::link
+        )
+    }
+
     fn act_on_pair(&mut self, state: &mut ParseState, pair: Pair<Rule>) -> String {
         let mut text: String = "".to_string();
         let rule = pair.as_rule();
-        if matches!(rule, Rule::text | Rule::link_text | Rule::code) {
-            if state.add_space {
-                text += " ";
-                state.add_space = false;
-            }
+        if state.add_space && self.is_inline(&rule) {
+            text += " ";
+            state.add_space = false;
+        }
+        if self.is_raw_text(&rule) {
             let raw_text = pair.as_str().to_string();
             text += self.act_on_raw_text(state, raw_text).as_str();
             return text;
@@ -230,72 +278,80 @@ where
                 .transformer
                 .peek_header(1, next_inner_string(&mut inner).unwrap()),
             Rule::h1 => {
-                text = self
+                text += self
                     .transformer
                     .transform_header(1, next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::h2 if state.peek => self
                 .transformer
                 .peek_header(2, next_inner_string(&mut inner).unwrap()),
             Rule::h2 => {
-                text = self
+                text += self
                     .transformer
                     .transform_header(2, next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::h3 if state.peek => self
                 .transformer
                 .peek_header(3, next_inner_string(&mut inner).unwrap()),
             Rule::h3 => {
-                text = self
+                text += self
                     .transformer
                     .transform_header(3, next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::h4 if state.peek => self
                 .transformer
                 .peek_header(4, next_inner_string(&mut inner).unwrap()),
             Rule::h4 => {
-                text = self
+                text += self
                     .transformer
                     .transform_header(4, next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::h5 if state.peek => self
                 .transformer
                 .peek_header(5, next_inner_string(&mut inner).unwrap()),
             Rule::h5 => {
-                text = self
+                text += self
                     .transformer
                     .transform_header(5, next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::h6 if state.peek => self
                 .transformer
                 .peek_header(6, next_inner_string(&mut inner).unwrap()),
             Rule::h6 => {
-                text = self
+                text += self
                     .transformer
                     .transform_header(6, next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::italic if state.peek => self
                 .transformer
                 .peek_italic(next_inner_string(&mut inner).unwrap()),
             Rule::italic => {
-                text = self
+                text += self
                     .transformer
                     .transform_italic(next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::bold if state.peek => self
                 .transformer
                 .peek_bold(next_inner_string(&mut inner).unwrap()),
             Rule::bold => {
-                text = self
+                text += self
                     .transformer
                     .transform_bold(next_inner_string(&mut inner).unwrap())
+                    .as_str()
             }
 
             Rule::link => {
@@ -304,7 +360,7 @@ where
                 if state.peek {
                     self.transformer.peek_link(link_text, url);
                 } else {
-                    text = self.transformer.transform_link(link_text, url);
+                    text += self.transformer.transform_link(link_text, url).as_str();
                 }
             }
             Rule::reflink => {
@@ -313,7 +369,7 @@ where
                 if state.peek {
                     self.transformer.peek_reflink(link_text, slug);
                 } else {
-                    text = self.transformer.transform_reflink(link_text, slug);
+                    text += self.transformer.transform_reflink(link_text, slug).as_str();
                 }
             }
             Rule::refurl => {
@@ -322,7 +378,7 @@ where
                 if state.peek {
                     self.transformer.peek_refurl(slug, url);
                 } else {
-                    text = self.transformer.transform_refurl(slug, url);
+                    text += self.transformer.transform_refurl(slug, url).as_str();
                 }
             }
             Rule::quote => {
@@ -336,11 +392,11 @@ where
                 if state.peek {
                     self.transformer.peek_quote(quote_text);
                 } else {
-                    text = self.transformer.transform_quote(quote_text);
+                    text += self.transformer.transform_quote(quote_text).as_str();
                 }
             }
             Rule::quote_line => {
-                text = self.get_rich_text(state, inner.len(), &mut inner);
+                text += self.get_rich_text(state, inner.len(), &mut inner).as_str();
             }
             Rule::codeblock => {
                 let mut got_lang = false;
@@ -355,25 +411,25 @@ where
                     None
                 };
                 if state.peek {
-                    self
-                        .transformer
+                    self.transformer
                         .peek_codeblock(lang, self.get_whole_block(&mut inner, "\n"));
                 } else {
-                    text = self
+                    text += self
                         .transformer
                         .transform_codeblock(lang, self.get_whole_block(&mut inner, "\n"))
+                        .as_str()
                 }
-            },
+            }
             Rule::inline_code => {
                 let code_text = next_inner_string(&mut inner).unwrap();
                 if state.peek {
                     self.transformer.peek_inline_code(code_text)
                 } else {
-                    text = self.transformer.transform_inline_code(code_text)
+                    text += self.transformer.transform_inline_code(code_text).as_str()
                 }
             }
             Rule::horiz_sep if state.peek => self.transformer.peek_horizontal_separator(),
-            Rule::horiz_sep => text = self.transformer.transform_horizontal_separator(),
+            Rule::horiz_sep => text += self.transformer.transform_horizontal_separator().as_str(),
             Rule::file | Rule::rich_txt | Rule::quote_txt => {
                 if inner.len() == 0 {
                     return self.act_on_raw_text(state, inner.as_str().to_string());
@@ -386,11 +442,18 @@ where
             Rule::image => {
                 let img_alt = next_inner_string(&mut inner).unwrap();
                 let url = next_inner_string(&mut inner).unwrap();
-                let added_tags = HashMap::new(); // TODO    Added tags
+                let mut added_tags = HashMap::new();
+                if let Some(img_tags) = inner.next() {
+                    let mut img_tags = img_tags.into_inner(); //.next().unwrap().into_inner();
+                    added_tags = self.get_metadata(state, &mut img_tags);
+                }
                 if state.peek {
                     self.transformer.peek_image(img_alt, url, added_tags);
                 } else {
-                    text = self.transformer.transform_image(img_alt, url, added_tags);
+                    text += self
+                        .transformer
+                        .transform_image(img_alt, url, added_tags)
+                        .as_str();
                 }
             }
             Rule::list => {
@@ -398,7 +461,7 @@ where
                 if state.peek {
                     self.transformer.peek_list(elements);
                 } else {
-                    text = self.transformer.transform_list(elements);
+                    text += self.transformer.transform_list(elements).as_str();
                 }
             }
             Rule::list_element => {
@@ -406,24 +469,30 @@ where
                 if state.peek {
                     self.transformer.peek_list_element(element_text);
                 } else {
-                    text = self.transformer.transform_list_element(element_text);
+                    text += self
+                        .transformer
+                        .transform_list_element(element_text)
+                        .as_str();
                 }
             }
-            Rule::paragraph_newline => {
-                state.add_space = true
-            },
+            Rule::paragraph_newline => state.add_space = true,
             Rule::paragraph => {
                 let paragraph_text = self.get_rich_text(state, inner.len(), &mut inner);
                 if state.peek {
                     self.transformer.peek_paragraph(paragraph_text);
                 } else {
-                    text += self.transformer.transform_paragraph(paragraph_text).as_str();
+                    text += self
+                        .transformer
+                        .transform_paragraph(paragraph_text)
+                        .as_str();
                 }
             }
-            Rule::vertical_space => if state.peek {
-                self.transformer.peek_vertical_space()
-            } else {
-                text = self.transformer.transform_vertical_space();
+            Rule::vertical_space => {
+                if state.peek {
+                    self.transformer.peek_vertical_space()
+                } else {
+                    text += self.transformer.transform_vertical_space().as_str();
+                }
             }
             r => unimplemented!("{r:?}"),
         };

@@ -28,9 +28,19 @@ impl MarkdownTransformer for Transformer {
         &mut self,
         alt: String,
         url: String,
-        _add_tags: std::collections::HashMap<String, String>,
+        add_tags: std::collections::HashMap<String, String>,
     ) -> String {
-        format!("<img src=\"{url}\" alt=\"{alt}\">")
+        let mut metadata = " ".to_string();
+        metadata += add_tags
+            .into_iter()
+            .map(|(key, val)| {
+                let val = val.trim_start_matches('\"').trim_end_matches('\"');
+                format!(" {key}=\"{val}\"")
+            })
+            .collect::<Vec<String>>()
+            .join(" ")
+            .as_str();
+        format!("<img src=\"{url}\" alt=\"{alt}\"{metadata}>")
     }
 
     fn transform_bold(&mut self, text: String) -> String {
