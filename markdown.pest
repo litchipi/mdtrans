@@ -68,8 +68,7 @@ quote_line =  { quote_txt+ ~ vertical_space? ~ &(NEWLINE | EOI) }
 quote      =  { "> " ~ quote_line* ~ (NEWLINE ~ ("> ")? ~ quote_line)* ~ (NEWLINE | EOI) }
 
 // code
-code = { (char_not_sym | (!("`") ~ SYMBOLS))+ }
-
+code                  =  { (char_not_sym | (!("`") ~ SYMBOLS))+ }
 INLINE_CODE_DELIMITER = _{ "`" ~ !("`") }
 inline_code           =  { INLINE_CODE_DELIMITER ~ code* ~ INLINE_CODE_DELIMITER }
 CODEBLOCK_DELIMITER   = _{ "```" }
@@ -92,7 +91,7 @@ italic_content   = _{ !ITALIC_DELIMITER ~ (bold | inline_code | link | reflink |
 italic           =  { ITALIC_DELIMITER ~ italic_content* ~ ITALIC_DELIMITER }
 
 // Links
-URL_CHARS = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" }
+URL_CHARS = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" | "#" }
 url       =  { URL_CHARS* }
 link_text =  { (char_not_sym | (!(INLINE_SYMBOLS | "]") ~ SYMBOLS))+ | NEWLINE }
 link      =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
