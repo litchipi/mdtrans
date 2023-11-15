@@ -18,6 +18,20 @@ fn test_trait_impl() {
 }
 
 #[test]
+fn test_empty_rich_text() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_link(&mut self, text: String, url: String) -> String {
+            format!("{text}: {url}")
+        }
+    }
+    let mut t = DummyTransform;
+    let res = transform_markdown_string("[](url)".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), ": url");
+}
+
+#[test]
 fn test_transform_empty() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {}
@@ -48,18 +62,23 @@ fn test_transform_string() {
 fn test_transform_header() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
-        fn transform_header(&mut self, level: usize, _: String) -> String {
-            format!("h{level}")
+        fn transform_header(&mut self, level: usize, text: String) -> String {
+            format!("h{level}: {text}")
         }
     }
     let mut t = DummyTransform;
 
     for level in 1..7 {
-        let res =
-            transform_markdown_string(format!("start\n{} header\nend", "#".repeat(level)), &mut t);
+        let res = transform_markdown_string(format!("{} header", "#".repeat(level)), &mut t);
         assert!(res.is_ok(), "Error on transformation: {res:?}");
-        assert_eq!(res.unwrap(), format!("start\nh{level}\nend"));
+        assert_eq!(res.unwrap(), format!("h{level}: header"));
     }
+
+    let input = "## Some `code` here **bold** ok";
+    let output = "h2: Some code here bold ok";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output);
 }
 
 #[test]
@@ -81,15 +100,27 @@ fn test_transform_italic() {
 fn test_transform_bold() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
-        fn transform_bold(&mut self, _: String) -> String {
-            "bold".to_string()
+        fn transform_bold(&mut self, text: String) -> String {
+            format!("BOLD {text} BOLD")
+        }
+
+        fn transform_italic(&mut self, text: String) -> String {
+            format!("ITALIC {text} ITALIC")
         }
     }
     let mut t = DummyTransform;
 
-    let res = transform_markdown_string("**toto**".to_string(), &mut t);
+    let input = "**toto**";
+    let output = "BOLD toto BOLD";
+    let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
-    assert_eq!(res.unwrap(), "bold".to_string());
+    assert_eq!(res.unwrap(), output.to_string());
+
+    let input = "**toto *italic* tutu**";
+    let output = "BOLD toto ITALIC italic ITALIC tutu BOLD";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output.to_string());
 }
 
 #[test]
@@ -137,11 +168,11 @@ fn test_transform_codeblock() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
         fn transform_codeblock(&mut self, lang: Option<String>, text: String) -> String {
-            let mut buffer = "CODEBLOCK".to_string();
+            let mut buffer = "\nCODEBLOCK".to_string();
             if let Some(l) = lang {
                 buffer += format!(" {l}").as_str();
             }
-            buffer += format!("\n{text}\nCODEBLOCK").as_str();
+            buffer += format!("\n{text}\nCODEBLOCK\n").as_str();
             buffer
         }
     }
@@ -182,7 +213,7 @@ fn test_transform_horiz_sep() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
         fn transform_horizontal_separator(&mut self) -> String {
-            "=== HORIZ SEPARATOR ===".to_string()
+            "\n=== HORIZ SEPARATOR ===\n".to_string()
         }
     }
     let mut t = DummyTransform;
@@ -203,7 +234,7 @@ fn test_transform_list() {
         }
 
         fn transform_list(&mut self, elements: Vec<String>) -> String {
-            elements.join(", ")
+            format!("\n{}\n", elements.join(", "))
         }
 
         fn transform_bold(&mut self, text: String) -> String {

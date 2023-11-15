@@ -4,9 +4,9 @@ mod transform;
 #[cfg(test)]
 mod tests;
 
+pub use errors::Errcode;
 use pest_derive::Parser;
 pub use transform::*;
-pub use errors::Errcode;
 
 #[derive(Parser)]
 #[grammar = "markdown.pest"]

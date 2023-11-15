@@ -28,5 +28,3 @@ fn test_peek_reflink() {
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), "<a href=\"c\">a</a>".to_string());
 }
-
-// TODO    Test comments
