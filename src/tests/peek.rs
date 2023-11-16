@@ -28,3 +28,18 @@ fn test_peek_reflink() {
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), "<a href=\"c\">a</a>".to_string());
 }
+
+#[test]
+fn test_peek_header() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn peek_header(&mut self, level: usize, text: String) {
+            assert_eq!(level, 2);
+            assert_eq!(text, "toto");
+        }
+    }
+    let mut t = DummyTransform;
+
+    let res = transform_markdown_string("## toto".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+}

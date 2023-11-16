@@ -85,15 +85,15 @@ fn test_transform_header() {
 fn test_transform_italic() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
-        fn transform_italic(&mut self, _: String) -> String {
-            "italic".to_string()
+        fn transform_italic(&mut self, text: String) -> String {
+            format!("ITALIC {text} ITALIC")
         }
     }
     let mut t = DummyTransform;
 
     let res = transform_markdown_string("*toto*".to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
-    assert_eq!(res.unwrap(), "italic".to_string());
+    assert_eq!(res.unwrap(), "ITALIC toto ITALIC".to_string());
 }
 
 #[test]
@@ -150,7 +150,6 @@ fn test_transform_quote() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {
         fn transform_quote(&mut self, text: String) -> String {
-            println!("QUOTE TEXT: {text}");
             format!("QUOTE\n{text}\nQUOTE")
         }
     }
@@ -265,7 +264,6 @@ fn test_transform_image() {
             add_tags: std::collections::HashMap<String, String>,
         ) -> String {
             let mut upper = false;
-            println!("{add_tags:?}");
             if let Some(t) = add_tags.get("upper") {
                 if t == "true" {
                     upper = true;

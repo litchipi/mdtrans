@@ -186,7 +186,18 @@ where
         TransformFramework { transformer }
     }
 
-    fn get_rich_text(&mut self, state: &ParseState, nb: usize, inner: &mut Pairs<Rule>) -> String {
+    fn get_rich_text(&mut self, state: &ParseState, pair: Pair<Rule>) -> String {
+        let mut child_state = state.clone();
+        child_state.peek = false;
+        self.act_on_pair(&mut child_state, pair)
+    }
+
+    fn get_inner_elements(
+        &mut self,
+        state: &ParseState,
+        nb: usize,
+        inner: &mut Pairs<Rule>,
+    ) -> String {
         // NOTE     Fixed in the code, should never happen in real case scenario
         assert!(
             nb <= inner.len(),
@@ -282,7 +293,8 @@ where
         let mut inner = pair.into_inner();
         match rule {
             Rule::h1 => {
-                let header_text = self.get_rich_text(state, inner.len(), &mut inner);
+                assert_eq!(inner.len(), 1, "Grammar error on h1, expected rich_txt");
+                let header_text = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
                     self.transformer.peek_header(1, header_text);
                 } else {
@@ -291,7 +303,8 @@ where
             }
 
             Rule::h2 => {
-                let header_text = self.get_rich_text(state, inner.len(), &mut inner);
+                assert_eq!(inner.len(), 1, "Grammar error on h2, expected rich_txt");
+                let header_text = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
                     self.transformer.peek_header(2, header_text);
                 } else {
@@ -300,7 +313,8 @@ where
             }
 
             Rule::h3 => {
-                let header_text = self.get_rich_text(state, inner.len(), &mut inner);
+                assert_eq!(inner.len(), 1, "Grammar error on h3, expected rich_txt");
+                let header_text = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
                     self.transformer.peek_header(3, header_text);
                 } else {
@@ -309,7 +323,8 @@ where
             }
 
             Rule::h4 => {
-                let header_text = self.get_rich_text(state, inner.len(), &mut inner);
+                assert_eq!(inner.len(), 1, "Grammar error on h4, expected rich_txt");
+                let header_text = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
                     self.transformer.peek_header(4, header_text);
                 } else {
@@ -318,7 +333,8 @@ where
             }
 
             Rule::h5 => {
-                let header_text = self.get_rich_text(state, inner.len(), &mut inner);
+                assert_eq!(inner.len(), 1, "Grammar error on h5, expected rich_txt");
+                let header_text = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
                     self.transformer.peek_header(5, header_text);
                 } else {
@@ -327,7 +343,8 @@ where
             }
 
             Rule::h6 => {
-                let header_text = self.get_rich_text(state, inner.len(), &mut inner);
+                assert_eq!(inner.len(), 1, "Grammar error on h6, expected rich_txt");
+                let header_text = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
                     self.transformer.peek_header(6, header_text);
                 } else {
@@ -336,7 +353,7 @@ where
             }
 
             Rule::italic => {
-                let italic_text = self.get_rich_text(state, inner.len(), &mut inner);
+                let italic_text = self.get_inner_elements(state, inner.len(), &mut inner);
                 if state.peek {
                     self.transformer.peek_italic(italic_text)
                 } else {
@@ -345,7 +362,7 @@ where
             }
 
             Rule::bold => {
-                let bold_text = self.get_rich_text(state, inner.len(), &mut inner);
+                let bold_text = self.get_inner_elements(state, inner.len(), &mut inner);
                 if state.peek {
                     self.transformer.peek_bold(bold_text);
                 } else {
@@ -354,7 +371,7 @@ where
             }
 
             Rule::link => {
-                let link_text = self.get_rich_text(state, inner.len() - 1, &mut inner);
+                let link_text = self.get_inner_elements(state, inner.len() - 1, &mut inner);
                 // NOTE    Safe to unwrap as we got all elements except one from iterator
                 let url = next_inner_string(&mut inner).unwrap();
                 if state.peek {
@@ -364,7 +381,7 @@ where
                 }
             }
             Rule::reflink => {
-                let link_text = self.get_rich_text(state, inner.len() - 1, &mut inner);
+                let link_text = self.get_inner_elements(state, inner.len() - 1, &mut inner);
                 // NOTE    Safe to unwrap as we got all elements except one from iterator
                 let slug = next_inner_string(&mut inner).unwrap();
                 if state.peek {
@@ -399,7 +416,9 @@ where
                 }
             }
             Rule::quote_line => {
-                text += self.get_rich_text(state, inner.len(), &mut inner).as_str();
+                text += self
+                    .get_inner_elements(state, inner.len(), &mut inner)
+                    .as_str();
             }
             Rule::codeblock => {
                 let mut got_lang = false;
@@ -471,7 +490,7 @@ where
                 }
             }
             Rule::list_element => {
-                let element_text = self.get_rich_text(state, inner.len(), &mut inner);
+                let element_text = self.get_inner_elements(state, inner.len(), &mut inner);
                 if state.peek {
                     self.transformer.peek_list_element(element_text);
                 } else {
@@ -483,7 +502,7 @@ where
             }
             Rule::paragraph_newline => state.add_space = true,
             Rule::paragraph => {
-                let paragraph_text = self.get_rich_text(state, inner.len(), &mut inner);
+                let paragraph_text = self.get_inner_elements(state, inner.len(), &mut inner);
                 if state.peek {
                     self.transformer.peek_paragraph(paragraph_text);
                 } else {
