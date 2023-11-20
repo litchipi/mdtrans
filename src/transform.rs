@@ -229,7 +229,6 @@ where
         for text_line in inner {
             buffer += text_line.as_str();
             buffer += join;
-            println!("{text_line:?} {buffer:?}");
         }
         let end = buffer.len() - join.len();
         buffer[..end].to_string()
