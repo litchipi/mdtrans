@@ -2,19 +2,20 @@ use crate::{transform_markdown_string, MarkdownTransformer};
 
 #[test]
 fn test_trait_impl() {
-    pub struct TestImpl;
-    impl MarkdownTransformer for TestImpl {
-        fn transform_comment(&mut self, mut orig: String) -> String {
-            orig += "tutu";
-            orig
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_comment(&mut self, text: String) -> String {
+            format!("COMMENT {text} COMMENT")
         }
     }
+    let mut t = DummyTransform;
+    let res = transform_markdown_string("<!-- comment -->".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), "COMMENT comment COMMENT");
 
-    let mut i = TestImpl;
-    assert_eq!(
-        i.transform_comment("toto".to_string()),
-        "tototutu".to_string()
-    );
+    let res = transform_markdown_string("<!--  comment\nblock\n -->".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), "COMMENT comment\nblock COMMENT");
 }
 
 #[test]

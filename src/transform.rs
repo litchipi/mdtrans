@@ -53,7 +53,6 @@ pub trait MarkdownTransformer {
         alt
     }
 
-    // TODO    Comments
     fn peek_comment(&mut self, text: String) {}
     fn transform_comment(&mut self, text: String) -> String {
         text
@@ -227,9 +226,10 @@ where
 
     fn get_whole_block(&self, inner: &mut Pairs<Rule>, join: &str) -> String {
         let mut buffer = "".to_string();
-        for code_line in inner {
-            buffer += code_line.as_str();
+        for text_line in inner {
+            buffer += text_line.as_str();
             buffer += join;
+            println!("{text_line:?} {buffer:?}");
         }
         let end = buffer.len() - join.len();
         buffer[..end].to_string()
@@ -260,7 +260,12 @@ where
     fn is_raw_text(&self, rule: &Rule) -> bool {
         matches!(
             rule,
-            Rule::text | Rule::link_text | Rule::code | Rule::img_tag_key | Rule::img_tag_val
+            Rule::text
+                | Rule::link_text
+                | Rule::code
+                | Rule::img_tag_key
+                | Rule::img_tag_val
+                | Rule::comment_text
         )
     }
 
@@ -441,6 +446,14 @@ where
                         .transformer
                         .transform_codeblock(lang, self.get_whole_block(&mut inner, "\n"))
                         .as_str();
+                }
+            }
+            Rule::comment => {
+                let t = self.get_rich_text(state, inner.next().unwrap());
+                if state.peek {
+                    self.transformer.peek_comment(t);
+                } else {
+                    text += self.transformer.transform_comment(t).as_str();
                 }
             }
             Rule::inline_code => {

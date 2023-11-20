@@ -75,8 +75,9 @@ CODEBLOCK_DELIMITER   = _{ "```" }
 codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES* ~ slug)? ~ NEWLINE ~ (code | NEWLINE)* ~ CODEBLOCK_DELIMITER }
 
 // comments
-comment_txt = { (char_not_sym | (!("-") ~ SYMBOLS))+ }
-comment     = { "<!--" ~ (WHITESPACES | NEWLINE)? ~ (comment_txt | NEWLINE)* ~ (WHITESPACES | NEWLINE)? ~ "-->" }
+comment_word = _{ (char_not_sym_nospace | (!("-") ~ SYMBOLS))+ }
+comment_text =  { (comment_word ~ (NEWLINE | WHITESPACES))* ~ comment_word }
+comment      =  { "<!--" ~ (WHITESPACES | NEWLINE)* ~ comment_text ~ (WHITESPACES | NEWLINE)* ~ "-->" }
 
 // Bold
 BOLD_DELIMITER = _{ "**" }
@@ -128,3 +129,4 @@ file      =  {
 }
 
 // TODO    Strikethrough text
+
