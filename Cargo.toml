@@ -2,8 +2,10 @@
 name = "mdtrans"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Markdown parser and transformer using `pest.rs`, focused on flexibility to a project's needs"
+repository = "https://github.com/litchipi/mdtrans"
+license = "GPL-3.0-only"
+readme = "README.md"
 
 [dependencies]
 pest = "2.7.5"
