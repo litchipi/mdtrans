@@ -40,6 +40,7 @@ SYMBOLS        = _{
 }
 INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
 SYM_NOT_INLINE = _{ !INLINE_SYMBOLS ~ SYMBOLS }
+URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" | "#" | "(" | (")" ~ &(URL_CHARS* ~ ")")) }
 
 // Common
 char_not_sym_nospace = _{ ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS }
@@ -91,13 +92,15 @@ italic_text      =  { (char_not_sym | SYM_NOT_INLINE)+ }
 italic_content   = _{ !ITALIC_DELIMITER ~ (bold | inline_code | link | reflink | image | NEWLINE | italic_text) }
 italic           =  { ITALIC_DELIMITER ~ italic_content* ~ ITALIC_DELIMITER }
 
-// Links
-URL_CHARS = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" | "#" }
-url       =  { URL_CHARS* }
-link_text =  { (char_not_sym | (!(INLINE_SYMBOLS | "]") ~ SYMBOLS))+ | NEWLINE }
-link      =  { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
-reflink   =  { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
-refurl    =  { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ url }
+// Direct Links
+url       = { URL_CHARS* }
+link_text = { (char_not_sym | (!(INLINE_SYMBOLS | "]") ~ SYMBOLS))+ | NEWLINE }
+link      = { "[" ~ (inline_symbol | link_text)* ~ "](" ~ url ~ ")" }
+
+// Links using references & labels
+reflink    = { "[" ~ (inline_symbol | link_text)* ~ "][" ~ slug ~ "]" }
+refurl_url = { (URL_CHARS | ")")* }
+refurl     = { "[" ~ slug ~ "]:" ~ WHITESPACES* ~ refurl_url }
 
 // Images
 img_tag_key = { slug }

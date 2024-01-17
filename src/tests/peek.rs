@@ -27,6 +27,10 @@ fn test_peek_reflink() {
     let res = transform_markdown_string("[a][b]\n[b]: c".to_string(), &mut t);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), "<a href=\"c\">a</a>".to_string());
+
+    let res = transform_markdown_string("[a][b]\n[b]: site_(c)".to_string(), &mut t);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), "<a href=\"site_(c)\">a</a>".to_string());
 }
 
 #[test]
