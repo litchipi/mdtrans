@@ -2,6 +2,8 @@
 ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" }
 SPECIAL_CHARS  = _{ "ç" | "€" }
 WHITESPACES    = _{ (!vertical_space ~ " ") | "\t" }
+SPACES         = _{ " "+ }
+EMPTY_LINE     = _{ (" ")* ~ NEWLINE }
 SYMBOLS        = _{
     ","
   | "%"
@@ -112,8 +114,10 @@ image       = { "![" ~ link_text* ~ "](" ~ url ~ ")" ~ image_tags? }
 
 // Paragraph
 paragraph_newline =  { NEWLINE }
-paragraph_line    = _{ (!block_type ~ rich_txt_some ~ vertical_space?)+ }
-paragraph         =  { paragraph_line ~ (paragraph_newline ~ paragraph_line)* ~ &(NEWLINE | EOI) }
+paragraph_line    = _{ SPACES? ~ (!block_type ~ rich_txt_some ~ vertical_space?)+ }
+paragraph         =  {
+    paragraph_line ~ (paragraph_newline ~ paragraph_line)* ~ &(NEWLINE | EOI)
+}
 
 // Separator
 horiz_sep      = { ("-"){3, } }
@@ -129,7 +133,7 @@ block_type    = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment | l
 
 text_line = _{ block_type | horiz_sep | &NEWLINE | paragraph }
 file      =  {
-    SOI ~ (text_line ~ NEWLINE)* ~ text_line? ~ EOI
+    SOI ~ (text_line ~ NEWLINE ~ EMPTY_LINE*)* ~ text_line? ~ SPACES? ~ EOI
 }
 
 // TODO    Strikethrough text
