@@ -261,7 +261,8 @@ where
             rule,
             Rule::text
                 | Rule::link_text
-                | Rule::code
+                | Rule::inline_code_code
+                | Rule::codeblock_code
                 | Rule::img_tag_key
                 | Rule::img_tag_val
                 | Rule::comment_text
@@ -273,7 +274,8 @@ where
             rule,
             Rule::text
                 | Rule::link_text
-                | Rule::code
+                | Rule::inline_code_code
+                | Rule::codeblock_code
                 | Rule::image
                 | Rule::bold
                 | Rule::italic

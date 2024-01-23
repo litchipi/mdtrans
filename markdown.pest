@@ -59,7 +59,7 @@ h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
 // list
-list_element_under = _{ NEWLINE ~ !("- ") ~ (comment | rich_txt_some) }
+list_element_under = _{ NEWLINE ~ !("- ") ~ rich_txt_some }
 list_element       =  { "- " ~ rich_txt ~ list_element_under* }
 list               =  { list_element ~ (NEWLINE+ ~ list_element)* ~ (NEWLINE | EOI) }
 
@@ -69,14 +69,15 @@ quote_line =  { quote_txt+ ~ vertical_space? ~ &(NEWLINE | EOI) }
 quote      =  { "> " ~ quote_line* ~ (NEWLINE ~ ("> ")? ~ quote_line)* ~ (NEWLINE | EOI) }
 
 // code
-code                  =  { (char_not_sym | (!("`") ~ SYMBOLS))+ }
 INLINE_CODE_DELIMITER = _{ "`" ~ !("`") }
-inline_code           =  { INLINE_CODE_DELIMITER ~ code* ~ INLINE_CODE_DELIMITER }
+inline_code_code      =  { (char_not_sym | (!INLINE_CODE_DELIMITER ~ SYMBOLS))+ }
+inline_code           =  { (INLINE_CODE_DELIMITER ~ inline_code_code* ~ INLINE_CODE_DELIMITER)+ }
 CODEBLOCK_DELIMITER   = _{ "```" }
-codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES* ~ slug)? ~ NEWLINE ~ (code | NEWLINE)* ~ CODEBLOCK_DELIMITER }
+codeblock_code        =  { ((char_not_sym | (!CODEBLOCK_DELIMITER ~ SYMBOLS)))+ }
+codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES* ~ slug)? ~ NEWLINE ~ (codeblock_code | NEWLINE)* ~ CODEBLOCK_DELIMITER }
 
 // comments
-comment_word = _{ (char_not_sym_nospace | (!("-") ~ SYMBOLS))+ }
+comment_word = _{ (char_not_sym_nospace | (!("-->") ~ SYMBOLS))+ }
 comment_text =  { (comment_word ~ (NEWLINE | WHITESPACES))* ~ comment_word }
 comment      =  { "<!--" ~ (WHITESPACES | NEWLINE)* ~ comment_text ~ (WHITESPACES | NEWLINE)* ~ "-->" }
 
