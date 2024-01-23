@@ -59,7 +59,7 @@ h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
 // list
-list_element_under = _{ NEWLINE ~ !("- ") ~ rich_txt_some }
+list_element_under = _{ NEWLINE ~ !("- ") ~ (comment | rich_txt_some) }
 list_element       =  { "- " ~ rich_txt ~ list_element_under* }
 list               =  { list_element ~ (NEWLINE+ ~ list_element)* ~ (NEWLINE | EOI) }
 
