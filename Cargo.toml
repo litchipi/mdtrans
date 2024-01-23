@@ -1,6 +1,6 @@
 [package]
 name = "mdtrans"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Markdown parser and transformer using `pest.rs`, focused on flexibility to a project's needs"
 repository = "https://github.com/litchipi/mdtrans"

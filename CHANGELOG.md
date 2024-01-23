@@ -1,3 +1,7 @@
+## v0.1.2
+
+Fixes bugs for comments, improve delimitation for code blocks and inline blocks
+
 ## v0.1.1
 
 Fixes a bug where links containing `(` or `)` characters were not recognized by the grammar.
