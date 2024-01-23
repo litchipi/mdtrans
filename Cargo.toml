@@ -1,6 +1,6 @@
 [package]
 name = "mdtrans"
-version = "0.1.2"
+version = "0.1.4"
 edition = "2021"
 description = "Markdown parser and transformer using `pest.rs`, focused on flexibility to a project's needs"
 repository = "https://github.com/litchipi/mdtrans"
@@ -8,6 +8,6 @@ license = "GPL-3.0-only"
 readme = "README.md"
 
 [dependencies]
-pest = "2.7.5"
-pest_derive = "2.7.5"
-thiserror = "1.0.50"
+pest = "2.7.7"
+pest_derive = "2.7.7"
+thiserror = "1.0.56"
