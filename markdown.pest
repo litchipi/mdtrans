@@ -1,5 +1,5 @@
 // character sets
-ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" }
+ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" | "û" }
 SPECIAL_CHARS  = _{ "ç" | "€" }
 WHITESPACES    = _{ (!vertical_space ~ " ") | "\t" }
 SPACES         = _{ " "+ }

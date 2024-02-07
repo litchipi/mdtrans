@@ -1,3 +1,7 @@
+## v0.1.5
+
+- Add a `û` accent to the list
+
 ## v0.1.4
 
 - Improve handling of heading and trailing spaces
