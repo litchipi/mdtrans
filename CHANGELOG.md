@@ -1,6 +1,7 @@
 ## v0.1.5
 
 - Add a `û` accent to the list
+- Simplify the pest file using builtins rules
 
 ## v0.1.4
 

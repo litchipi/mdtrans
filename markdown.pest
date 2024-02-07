@@ -1,54 +1,17 @@
 // character sets
-ACCENTS        = _{ "é" | "è" | "ù" | "ô" | "ê" | "î" | "à" | "ï" | "ö" | "ë" | "ä" | "â" | "û" }
-SPECIAL_CHARS  = _{ "ç" | "€" }
 WHITESPACES    = _{ (!vertical_space ~ " ") | "\t" }
 SPACES         = _{ " "+ }
 EMPTY_LINE     = _{ (" ")* ~ NEWLINE }
-SYMBOLS        = _{
-    ","
-  | "%"
-  | "^"
-  | "~"
-  | "."
-  | "_"
-  | "/"
-  | "\\"
-  | "?"
-  | ":"
-  | "("
-  | ")"
-  | "{"
-  | "}"
-  | ";"
-  | ">"
-  | "<"
-  | "'"
-  | "\""
-  | "“"
-  | "”"
-  | "="
-  | "-"
-  | "+"
-  | "#"
-  | "["
-  | "]"
-  | "!"
-  | "`"
-  | "&"
-  | "|"
-  | "@"
-  | "$"
-  | INLINE_SYMBOLS
-}
+SYMBOLS        = _{ SYMBOL | PUNCTUATION }
 INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
 SYM_NOT_INLINE = _{ !INLINE_SYMBOLS ~ SYMBOLS }
 URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" | "#" | "(" | (")" ~ &(URL_CHARS* ~ ")")) }
 
 // Common
-char_not_sym_nospace = _{ ASCII_ALPHANUMERIC | ACCENTS | SPECIAL_CHARS }
+char_not_sym_nospace = _{ LETTER | NUMBER }
 char_not_sym         = _{ char_not_sym_nospace | WHITESPACES }
-char                 = _{ char_not_sym | SYM_NOT_INLINE }
 anychar              = _{ char_not_sym | SYMBOLS }
+char                 = _{ char_not_sym | SYM_NOT_INLINE }
 text                 =  { char+ }
 slug                 =  { (ASCII_ALPHANUMERIC | "_" | "-" | ".")+ }
 
