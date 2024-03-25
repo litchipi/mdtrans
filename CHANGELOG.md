@@ -1,3 +1,5 @@
+## v0.1.6
+
 ## v0.1.5
 
 - Add a `û` accent to the list
