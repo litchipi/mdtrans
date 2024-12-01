@@ -98,6 +98,25 @@ fn test_transform_italic() {
 }
 
 #[test]
+fn test_transform_strike() {
+    pub struct DummyTransform;
+    impl MarkdownTransformer for DummyTransform {
+        fn transform_strikethrough(&mut self, text: String) -> String {
+            format!("STRIKE {text} STRIKE")
+        }
+    }
+    let mut t = DummyTransform;
+
+    let res = transform_markdown_string("~~toto~~".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), "STRIKE toto STRIKE".to_string());
+
+    let res = transform_markdown_string("--toto--".to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), "STRIKE toto STRIKE".to_string());
+}
+
+#[test]
 fn test_transform_bold() {
     pub struct DummyTransform;
     impl MarkdownTransformer for DummyTransform {

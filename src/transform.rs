@@ -278,6 +278,7 @@ where
                 | Rule::codeblock_code
                 | Rule::image
                 | Rule::bold
+                | Rule::strike
                 | Rule::italic
                 | Rule::link
         )
@@ -376,6 +377,15 @@ where
                 }
             }
 
+            Rule::strike => {
+                let strike_text = self.get_inner_elements(state, inner.len(), &mut inner);
+                if state.peek {
+                    self.transformer.peek_strikethrough(strike_text)
+                } else {
+                    text += self.transformer.transform_strikethrough(strike_text).as_str();
+                }
+            }
+
             Rule::link => {
                 let link_text = self.get_inner_elements(state, inner.len() - 1, &mut inner);
                 // NOTE    Safe to unwrap as we got all elements except one from iterator
@@ -386,6 +396,7 @@ where
                     text += self.transformer.transform_link(link_text, url).as_str();
                 }
             }
+
             Rule::reflink => {
                 let link_text = self.get_inner_elements(state, inner.len() - 1, &mut inner);
                 // NOTE    Safe to unwrap as we got all elements except one from iterator
@@ -396,6 +407,7 @@ where
                     text += self.transformer.transform_reflink(link_text, slug).as_str();
                 }
             }
+
             Rule::refurl => {
                 // NOTE the grammar should always match 2 elements, and no more than that
                 assert_eq!(inner.len(), 2, "Grammar error on refurl, expected 2 inners");
@@ -407,6 +419,7 @@ where
                     text += self.transformer.transform_refurl(slug, url).as_str();
                 }
             }
+
             Rule::quote => {
                 let lines = inner
                     .map(|line| {
@@ -421,11 +434,13 @@ where
                     text += self.transformer.transform_quote(quote_text).as_str();
                 }
             }
+
             Rule::quote_line => {
                 text += self
                     .get_inner_elements(state, inner.len(), &mut inner)
                     .as_str();
             }
+
             Rule::codeblock => {
                 let mut got_lang = false;
                 if let Some(t) = inner.peek() {
@@ -449,6 +464,7 @@ where
                         .as_str();
                 }
             }
+
             Rule::comment => {
                 let t = self.get_rich_text(state, inner.next().unwrap());
                 if state.peek {
@@ -457,6 +473,7 @@ where
                     text += self.transformer.transform_comment(t).as_str();
                 }
             }
+
             Rule::inline_code => {
                 assert_eq!(
                     inner.len(),
@@ -470,10 +487,12 @@ where
                     text += self.transformer.transform_inline_code(code_text).as_str()
                 }
             }
+
             Rule::horiz_sep if state.peek => self.transformer.peek_horizontal_separator(),
             Rule::horiz_sep => {
                 text += self.transformer.transform_horizontal_separator().as_str();
             }
+
             Rule::image => {
                 assert!(
                     inner.len() >= 2,
@@ -495,6 +514,7 @@ where
                         .as_str();
                 }
             }
+
             Rule::list => {
                 let elements: Vec<String> = inner.map(|el| self.act_on_pair(state, el)).collect();
                 if state.peek {
@@ -503,6 +523,7 @@ where
                     text += self.transformer.transform_list(elements).as_str();
                 }
             }
+
             Rule::list_element => {
                 let element_text = self.get_inner_elements(state, inner.len(), &mut inner);
                 if state.peek {
@@ -514,7 +535,9 @@ where
                         .as_str();
                 }
             }
+
             Rule::paragraph_newline => state.add_space = true,
+
             Rule::paragraph => {
                 let paragraph_text = self.get_inner_elements(state, inner.len(), &mut inner);
                 if state.peek {
@@ -526,6 +549,7 @@ where
                         .as_str();
                 }
             }
+
             Rule::vertical_space => {
                 if state.peek {
                     self.transformer.peek_vertical_space()
@@ -533,7 +557,8 @@ where
                     text += self.transformer.transform_vertical_space().as_str();
                 }
             }
-            Rule::file | Rule::rich_txt | Rule::quote_txt | Rule::bold_text | Rule::italic_text => {
+
+            Rule::file | Rule::rich_txt | Rule::quote_txt | Rule::NO_INLINE_TEXT => {
                 if inner.len() == 0 {
                     return self.act_on_raw_text(state, pair_text.to_string());
                 }

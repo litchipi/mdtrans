@@ -3,9 +3,10 @@ WHITESPACES    = _{ (!vertical_space ~ " ") | "\t" }
 SPACES         = _{ " "+ }
 EMPTY_LINE     = _{ (" ")* ~ NEWLINE }
 SYMBOLS        = _{ SYMBOL | PUNCTUATION }
-INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
+INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" | STRIKE_DELIMITER }
 SYM_NOT_INLINE = _{ !INLINE_SYMBOLS ~ SYMBOLS }
 URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "?" | "." | "&" | "=" | "_" | "-" | "%" | "@" | "#" | "(" | (")" ~ &(URL_CHARS* ~ ")")) }
+NO_INLINE_TEXT =  { (char_not_sym | SYM_NOT_INLINE)+ }
 
 // Common
 char_not_sym_nospace = _{ LETTER | NUMBER }
@@ -46,16 +47,19 @@ comment_word = _{ (char_not_sym_nospace | (!("-->") ~ SYMBOLS))+ }
 comment_text =  { (comment_word ~ (NEWLINE | WHITESPACES))* ~ comment_word }
 comment      =  { "<!--" ~ (WHITESPACES | NEWLINE)* ~ comment_text ~ (WHITESPACES | NEWLINE)* ~ "-->" }
 
+// Strikethrough
+STRIKE_DELIMITER = _{ "~~" | "--" }
+strike_content = _{ !STRIKE_DELIMITER ~ (bold | italic | inline_code | link | reflink | image | NEWLINE | NO_INLINE_TEXT) }
+strike = { STRIKE_DELIMITER ~ strike_content* ~ STRIKE_DELIMITER }
+
 // Bold
 BOLD_DELIMITER = _{ "**" }
-bold_text      =  { (char_not_sym | SYM_NOT_INLINE)+ }
-bold_content   = _{ !BOLD_DELIMITER ~ (italic | inline_code | link | reflink | image | NEWLINE | bold_text) }
+bold_content   = _{ !BOLD_DELIMITER ~ (strike | italic | inline_code | link | reflink | image | NEWLINE | NO_INLINE_TEXT) }
 bold           =  { BOLD_DELIMITER ~ bold_content* ~ BOLD_DELIMITER }
 
 // Italic
 ITALIC_DELIMITER = _{ "*" ~ (&BOLD_DELIMITER | !("*")) }
-italic_text      =  { (char_not_sym | SYM_NOT_INLINE)+ }
-italic_content   = _{ !ITALIC_DELIMITER ~ (bold | inline_code | link | reflink | image | NEWLINE | italic_text) }
+italic_content   = _{ !ITALIC_DELIMITER ~ (bold | strike | inline_code | link | reflink | image | NEWLINE | NO_INLINE_TEXT) }
 italic           =  { ITALIC_DELIMITER ~ italic_content* ~ ITALIC_DELIMITER }
 
 // Direct Links
@@ -91,7 +95,7 @@ rich_txt       =  { rich_txt_maybe }
 rich_txt_maybe = _{ (inline_symbol | text)* }
 rich_txt_some  = _{ (inline_symbol | text)+ }
 
-inline_symbol = _{ bold | italic | inline_code | link | reflink | refurl | image }
+inline_symbol = _{ bold | italic | inline_code | link | reflink | refurl | image | strike }
 block_type    = _{ h1 | h2 | h3 | h4 | h5 | h6 | quote | codeblock | comment | list }
 
 text_line = _{ block_type | horiz_sep | &NEWLINE | paragraph }
