@@ -5,7 +5,7 @@ EMPTY_LINE     = _{ (" ")* ~ NEWLINE }
 SYMBOLS        = _{ SYMBOL | PUNCTUATION }
 INLINE_SYMBOLS = _{ "`" | "[" | "*" | "![" }
 SYM_NOT_INLINE = _{ !INLINE_SYMBOLS ~ SYMBOLS }
-URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "." | "_" | "-" | "%" | "@" | "#" | "(" | (")" ~ &(URL_CHARS* ~ ")")) }
+URL_CHARS      = _{ ASCII_ALPHANUMERIC | ":" | "/" | "?" | "." | "&" | "=" | "_" | "-" | "%" | "@" | "#" | "(" | (")" ~ &(URL_CHARS* ~ ")")) }
 
 // Common
 char_not_sym_nospace = _{ LETTER | NUMBER }
@@ -100,4 +100,3 @@ file      =  {
 }
 
 // TODO    Strikethrough text
-
