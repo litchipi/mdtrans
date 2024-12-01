@@ -8,6 +8,9 @@ license = "GPL-3.0-only"
 readme = "README.md"
 
 [dependencies]
-pest = "2.7.7"
-pest_derive = "2.7.7"
-thiserror = "1.0.56"
+pest = "2.7.14"
+pest_derive = "2.7.14"
+thiserror = "2.0.3"
+# pest = "2.7.7"
+# pest_derive = "2.7.7"
+# thiserror = "1.0.56"

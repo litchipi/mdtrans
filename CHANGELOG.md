@@ -1,4 +1,6 @@
 ## v0.1.6
+- Fix bug with URL support
+- Add strikethrough text rules
 
 ## v0.1.5
 
