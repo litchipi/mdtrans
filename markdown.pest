@@ -25,8 +25,9 @@ h5 = { "##### " ~ rich_txt }
 h6 = { "###### " ~ rich_txt }
 
 // list
-list_element_under = _{ NEWLINE ~ !("- ") ~ (comment | rich_txt_some) }
-list_element       =  { "- " ~ rich_txt ~ vertical_space* ~ list_element_under* }
+list_element_under = _{ NEWLINE ~ !(list_level ~ "- ") ~ (comment | rich_txt_some) }
+list_level = { " "* }
+list_element       =  { list_level ~ "- " ~ rich_txt ~ vertical_space* ~ list_element_under* }
 list               =  { list_element ~ (NEWLINE+ ~ list_element)* ~ (NEWLINE | EOI) }
 
 // quote
