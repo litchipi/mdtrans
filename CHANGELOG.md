@@ -1,3 +1,7 @@
+## v0.1.8
+- Fixes regressions created by previous release
+- Remove debug messages in the code
+
 ## v0.1.7
 - Implement nested lists
 - Fixup some formatting errors in code blocks
