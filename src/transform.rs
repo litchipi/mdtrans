@@ -2,7 +2,7 @@ use pest::{
     iterators::{Pair, Pairs},
     Parser,
 };
-use std::{collections::HashMap, unimplemented};
+use std::{cmp::Ordering, collections::HashMap, unimplemented};
 
 use crate::{errors::Errcode, MarkdownParser, Rule};
 
@@ -188,7 +188,7 @@ struct TransformFramework<'a, T> {
     transformer: &'a mut T,
 }
 
-impl<'a, T> TransformFramework<'a, T>
+impl<T> TransformFramework<'_, T>
 where
     T: MarkdownTransformer,
 {
@@ -532,30 +532,34 @@ where
             Rule::list_level => {
                 debug_assert!(pair_text.chars().all(|c| c == ' '));
                 let level = pair_text.len();
-                println!("{state:?}");
-                if level > state.list_level {
-                    let diff = level - state.list_level;
-                    println!("INC {diff}");
-                    if state.peek {
-                        self.transformer.peek_inc_list_level(diff);
-                    } else {
-                        text += self.transformer.transform_inc_list_level(diff).as_str();
+                match level.cmp(&state.list_level) {
+                    Ordering::Greater => {
+                        let diff = level - state.list_level;
+                        if state.peek {
+                            self.transformer.peek_inc_list_level(diff);
+                        } else {
+                            text += self.transformer.transform_inc_list_level(diff).as_str();
+                        }
                     }
-                } else if level < state.list_level {
-                    let diff = state.list_level - level;
-                    println!("DEC {diff}");
-                    if state.peek {
-                        self.transformer.peek_dec_list_level(diff);
-                    } else {
-                        text += self.transformer.transform_dec_list_level(diff).as_str();
+                    Ordering::Less => {
+                        let diff = state.list_level - level;
+                        if state.peek {
+                            self.transformer.peek_dec_list_level(diff);
+                        } else {
+                            text += self.transformer.transform_dec_list_level(diff).as_str();
+                        }
                     }
-                }
+                    _ => {}
+                };
 
                 state.list_level = level;
             }
 
             Rule::list => {
-                let elements: Vec<String> = inner.map(|el| self.act_on_pair(state, el)).collect();
+                let elements: Vec<String> = inner
+                    .map(|el| self.act_on_pair(state, el))
+                    .filter(|s| !s.is_empty())
+                    .collect();
                 if state.peek {
                     self.transformer.peek_list(elements);
                 } else {

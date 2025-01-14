@@ -265,11 +265,11 @@ fn test_transform_list() {
         }
 
         fn transform_inc_list_level(&mut self, added: usize) -> String {
-            "INC ".repeat(added).to_string()
+            "INC ".repeat(added).trim().to_string()
         }
 
-        fn transform_dec_list_level(&mut self, added: usize) -> String {
-            "DEC ".repeat(added).to_string()
+        fn transform_dec_list_level(&mut self, subbed: usize) -> String {
+            "DEC ".repeat(subbed).trim().to_string()
         }
     }
     let mut t = DummyTransform;
@@ -281,7 +281,7 @@ fn test_transform_list() {
     assert_eq!(res.unwrap(), output.to_string());
 
     let input = "start\n- a\n - *b*\n  - **c**\n- d\n\nend";
-    let output = "start\na, INC ITALIC b ITALIC, INC BOLD c BOLD, DEC DEC d\nend";
+    let output = "start\na, INC, ITALIC b ITALIC, INC, BOLD c BOLD, DEC DEC, d\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());
