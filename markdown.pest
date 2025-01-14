@@ -26,7 +26,7 @@ h6 = { "###### " ~ rich_txt }
 
 // list
 list_element_under = _{ NEWLINE ~ !("- ") ~ (comment | rich_txt_some) }
-list_element       =  { "- " ~ rich_txt ~ list_element_under* }
+list_element       =  { "- " ~ rich_txt ~ vertical_space* ~ list_element_under* }
 list               =  { list_element ~ (NEWLINE+ ~ list_element)* ~ (NEWLINE | EOI) }
 
 // quote
@@ -39,8 +39,8 @@ INLINE_CODE_DELIMITER = _{ "`" ~ !("`") }
 inline_code_code      =  { (char_not_sym | (!INLINE_CODE_DELIMITER ~ SYMBOLS))+ }
 inline_code           =  { (INLINE_CODE_DELIMITER ~ inline_code_code* ~ INLINE_CODE_DELIMITER)+ }
 CODEBLOCK_DELIMITER   = _{ "```" }
-codeblock_code        =  { ((char_not_sym | (!CODEBLOCK_DELIMITER ~ SYMBOLS)))+ }
-codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES* ~ slug)? ~ NEWLINE ~ (codeblock_code | NEWLINE)* ~ CODEBLOCK_DELIMITER }
+codeblock_code        =  { ((char_not_sym | (!CODEBLOCK_DELIMITER ~ (SYMBOLS | (NEWLINE ~ !CODEBLOCK_DELIMITER)))))+ }
+codeblock             =  { CODEBLOCK_DELIMITER ~ (WHITESPACES* ~ slug)? ~ NEWLINE ~ codeblock_code ~ NEWLINE ~ CODEBLOCK_DELIMITER }
 
 // comments
 comment_word = _{ (char_not_sym_nospace | (!("-->") ~ SYMBOLS))+ }
