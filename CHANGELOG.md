@@ -1,3 +1,7 @@
+## v0.1.7
+- Implement nested lists
+- Fixup some formatting errors in code blocks
+
 ## v0.1.6
 - Fix bug with URL support
 - Add strikethrough text rules
