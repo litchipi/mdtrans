@@ -94,6 +94,16 @@ pub trait MarkdownTransformer {
         element
     }
 
+    fn peek_inc_list_level(&mut self, added: usize) {}
+    fn transform_inc_list_level(&mut self, added: usize) -> String {
+        "".to_string()
+    }
+
+    fn peek_dec_list_level(&mut self, added: usize) {}
+    fn transform_dec_list_level(&mut self, added: usize) -> String {
+        "".to_string()
+    }
+
     fn peek_vertical_space(&mut self) {}
     fn transform_vertical_space(&mut self) -> String {
         "\n".to_string()
@@ -161,6 +171,7 @@ fn next_inner_string(inner: &mut Pairs<Rule>) -> Option<String> {
 pub struct ParseState {
     peek: bool,
     add_space: bool,
+    list_level: usize,
 }
 
 impl ParseState {
@@ -193,7 +204,7 @@ where
 
     fn get_inner_elements(
         &mut self,
-        state: &ParseState,
+        child_state: &mut ParseState,
         nb: usize,
         inner: &mut Pairs<Rule>,
     ) -> String {
@@ -204,12 +215,12 @@ where
             nb,
             inner.len()
         );
-        let mut child_state = state.clone();
+        // let mut child_state = state.clone();
         let inners = (0..nb)
             .map(|_| {
                 // NOTE    Unwrap as we get an assert on the number of elements before
                 let pair = inner.next().unwrap();
-                self.act_on_pair(&mut child_state, pair)
+                self.act_on_pair(child_state, pair)
             })
             .collect::<Vec<String>>();
         inners.join("")
@@ -382,7 +393,10 @@ where
                 if state.peek {
                     self.transformer.peek_strikethrough(strike_text)
                 } else {
-                    text += self.transformer.transform_strikethrough(strike_text).as_str();
+                    text += self
+                        .transformer
+                        .transform_strikethrough(strike_text)
+                        .as_str();
                 }
             }
 
@@ -513,6 +527,31 @@ where
                         .transform_image(img_alt, url, added_tags)
                         .as_str();
                 }
+            }
+
+            Rule::list_level => {
+                debug_assert!(pair_text.chars().all(|c| c == ' '));
+                let level = pair_text.len();
+                println!("{state:?}");
+                if level > state.list_level {
+                    let diff = level - state.list_level;
+                    println!("INC {diff}");
+                    if state.peek {
+                        self.transformer.peek_inc_list_level(diff);
+                    } else {
+                        text += self.transformer.transform_inc_list_level(diff).as_str();
+                    }
+                } else if level < state.list_level {
+                    let diff = state.list_level - level;
+                    println!("DEC {diff}");
+                    if state.peek {
+                        self.transformer.peek_dec_list_level(diff);
+                    } else {
+                        text += self.transformer.transform_dec_list_level(diff).as_str();
+                    }
+                }
+
+                state.list_level = level;
             }
 
             Rule::list => {

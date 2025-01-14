@@ -263,11 +263,25 @@ fn test_transform_list() {
         fn transform_italic(&mut self, text: String) -> String {
             format!("ITALIC {text} ITALIC")
         }
+
+        fn transform_inc_list_level(&mut self, added: usize) -> String {
+            "INC ".repeat(added).to_string()
+        }
+
+        fn transform_dec_list_level(&mut self, added: usize) -> String {
+            "DEC ".repeat(added).to_string()
+        }
     }
     let mut t = DummyTransform;
 
     let input = "start\n- a\n- **b**\n- *c*\n\nend";
     let output = "start\na, BOLD b BOLD, ITALIC c ITALIC\nend";
+    let res = transform_markdown_string(input.to_string(), &mut t);
+    assert!(res.is_ok(), "Error on transformation: {res:?}");
+    assert_eq!(res.unwrap(), output.to_string());
+
+    let input = "start\n- a\n - *b*\n  - **c**\n- d\n\nend";
+    let output = "start\na, INC ITALIC b ITALIC, INC BOLD c BOLD, DEC DEC d\nend";
     let res = transform_markdown_string(input.to_string(), &mut t);
     assert!(res.is_ok(), "Error on transformation: {res:?}");
     assert_eq!(res.unwrap(), output.to_string());

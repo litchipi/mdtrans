@@ -50,8 +50,8 @@ comment      =  { "<!--" ~ (WHITESPACES | NEWLINE)* ~ comment_text ~ (WHITESPACE
 
 // Strikethrough
 STRIKE_DELIMITER = _{ "~~" | "--" }
-strike_content = _{ !STRIKE_DELIMITER ~ (bold | italic | inline_code | link | reflink | image | NEWLINE | NO_INLINE_TEXT) }
-strike = { STRIKE_DELIMITER ~ strike_content* ~ STRIKE_DELIMITER }
+strike_content   = _{ !STRIKE_DELIMITER ~ (bold | italic | inline_code | link | reflink | image | NEWLINE | NO_INLINE_TEXT) }
+strike           =  { STRIKE_DELIMITER ~ strike_content* ~ STRIKE_DELIMITER }
 
 // Bold
 BOLD_DELIMITER = _{ "**" }
